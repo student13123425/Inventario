@@ -1,0 +1,7 @@
+# Ignore Node.js module folders in specific directories
+
+# Block node_modules inside the Frontend directory
+Frontend/node_modules/
+
+# Block node_modules inside the Server directory
+Server/node_modules/

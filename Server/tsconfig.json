@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    /* Visit https://aka.ms/tsconfig.json to read more about this file */
+
+    /* Project settings */
+    "target": "ES2022",                    // Modern Node.js supports ES2022+
+    "module": "NodeNext",                  // Best for Node.js with ESM or CommonJS
+    "moduleResolution": "NodeNext",
+    "rootDir": "./src",                    // Source directory
+    "outDir": "./dest",                    // Your requested output folder
+    "declaration": true,                   // Generate .d.ts files (optional but useful)
+    "sourceMap": true,                     // Helpful for debugging
+
+    /* Strict type-checking */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    /* Additional best practices */
+    "esModuleInterop": true,               // Allows `import express from "express"`
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,               // Required for tools like tsx/babel
+
+    /* Node.js specific */
+    "lib": ["ES2023"]
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dest",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
+}
