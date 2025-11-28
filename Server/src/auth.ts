@@ -24,16 +24,13 @@ export async function verifyTokenOwnership(token: string): Promise<{
   error?: string 
 }> {
   try {
-    // Verify token signature and expiration
     const decoded = verifyToken(token);
     if (!decoded) {
       return { valid: false, error: 'Invalid or expired token' };
     }
 
-    // Import the database function (you'll need to add getUserById to database.js)
     const { getUserById } = await import('./database_core.js');
 
-    // Verify user still exists in database
     const user = await getUserById(decoded.id);
     if (!user) {
       return { valid: false, error: 'User no longer exists' };
@@ -127,21 +124,19 @@ async function authenticateToken(req: express.Request, res: express.Response, ne
       return res.status(401).json({ success: false, error: result.error || 'Invalid token' });
     }
 
-    // Attach user to request for use in route handlers
     req.user = {
       id: result.user.id,
       email: result.user.email,
       shop_name: result.user.shop_name
     };
 
-    next(); // Proceed to the protected route
+    next();
   } catch (error) {
     console.error('Authentication error:', error);
     return res.status(500).json({ success: false, error: 'Authentication failed' });
   }
 }
 
-// Helper function to get authenticated user with type safety
 export function getAuthenticatedUser(req: express.Request): { id: number; email: string; shop_name: string } {
   if (!req.user) {
     throw new Error('User not authenticated');

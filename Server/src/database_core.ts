@@ -9,7 +9,6 @@ const __dirname = dirname(__filename);
 const dbPath = join(__dirname, '..', 'users.db');
 export const dataPath = join(__dirname, '../data');
 
-// --- Main Database Connection ---
 export const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error opening database:', err.message);
@@ -18,7 +17,6 @@ export const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
-// --- Initialization ---
 export function initializeDatabase(): Promise<void> {
   return new Promise((resolve, reject) => {
     db.run(`
@@ -41,7 +39,6 @@ export function initializeDatabase(): Promise<void> {
   });
 }
 
-// --- Type Definitions ---
 
 export interface User {
   id: number;
@@ -93,7 +90,6 @@ export interface TransactionRecord {
   TransactionDate: string;
 }
 
-// --- User Management & Auth Functions ---
 
 export function getUserByEmail(email: string): Promise<User | undefined> {
   return new Promise((resolve, reject) => {
@@ -125,7 +121,6 @@ export async function createUser(
     await mkdir(userFolderPath, { recursive: true });
     await mkdir(`${userFolderPath}/images`, { recursive: true });
     
-    // Initialize the individual user's database schema
     init_user_data(`${userFolderPath}/user.db`);
 
     return await new Promise<number>((resolve, reject) => {

@@ -8,7 +8,6 @@ import {
     TransactionRecord 
 } from './database_core.js';
 
-// --- Product Operations ---
 
 export async function createProduct(folderHash: string, product: Product): Promise<number> {
   const db = await connectToUserDatabase(folderHash);
@@ -160,7 +159,6 @@ export async function reduceInventoryFIFO(folderHash: string, productId: number,
   });
 }
 
-// --- Customer Operations ---
 
 export async function createCustomer(folderHash: string, customer: Customer): Promise<number> {
   const db = await connectToUserDatabase(folderHash);
@@ -188,7 +186,6 @@ export async function getCustomers(folderHash: string): Promise<Customer[]> {
   });
 }
 
-// --- Supplier Operations ---
 
 export async function createSupplier(folderHash: string, supplier: Supplier): Promise<number> {
   const db = await connectToUserDatabase(folderHash);

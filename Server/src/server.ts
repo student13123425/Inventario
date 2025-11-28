@@ -10,7 +10,6 @@ const port = 3000;
 app.use(bodyParser.json());
 app.use(cors());
 
-// Extend Express Request type to include user
 declare global {
   namespace Express {
     interface Request {
