@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import { getUserByEmail, createUser } from './database.js';
+import { getUserByEmail, createUser } from './database_core.js';
 
 const jwtSecret = 'your_jwt_secret_key_here_change_in_production';
 const saltRounds = 12;
@@ -31,7 +31,7 @@ export async function verifyTokenOwnership(token: string): Promise<{
     }
 
     // Import the database function (you'll need to add getUserById to database.js)
-    const { getUserById } = await import('./database.js');
+    const { getUserById } = await import('./database_core.js');
 
     // Verify user still exists in database
     const user = await getUserById(decoded.id);

@@ -1,6 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import { initializeDatabase } from './database.js';
+import { initializeDatabase } from './database_core.js';
 import { registerUser, loginUser } from './auth.js';
 import cors from 'cors';
 
