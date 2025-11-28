@@ -60,4 +60,4 @@ Inventario employs a dual-database structure to ensure strong user data isolatio
 | **Backend** | Node.js | Runtime environment for the server logic. | 
 | **Database** | SQLite3 | Lightweight, file-based database used for simple, embedded data storage and per-user isolation. | 
 | **Language** | TypeScript | Provides static typing for improved code quality and maintainability. | 
-| **Framework** | Express (or similar) | Used for building the RESTful API endpoints (implicit based on server structure). | 
+| **Framework** | Express (or similar) | Used for building the RESTful API endpoints (implicit based on server structure). |  
