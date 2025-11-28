@@ -28,67 +28,6 @@ initializeDatabase().catch((err) => {
   process.exit(1);
 });
 
-// Authentication Middleware
-async function authenticateToken(req: express.Request, res: express.Response, next: express.NextFunction) {
-  try {
-    // Get token from Authorization header
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-    if (!token) {
-      return res.status(401).json({ success: false, error: 'Access token required' });
-    }
-
-    // Import the token verification function
-    const { verifyTokenOwnership } = await import('./auth.js');
-
-    // Verify token and get user
-    const result = await verifyTokenOwnership(token);
-
-    if (!result.valid || !result.user) {
-      return res.status(401).json({ success: false, error: result.error || 'Invalid token' });
-    }
-
-    // Attach user to request for use in route handlers
-    req.user = {
-      id: result.user.id,
-      email: result.user.email,
-      shop_name: result.user.shop_name
-    };
-
-    next(); // Proceed to the protected route
-  } catch (error) {
-    console.error('Authentication error:', error);
-    return res.status(500).json({ success: false, error: 'Authentication failed' });
-  }
-}
-
-// Middleware to verify user owns the resource they're accessing
-function requireResourceOwnership(paramName = 'userId') {
-  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    // Check if user is defined (should always be true if authenticateToken ran first)
-    if (!req.user) {
-      return res.status(401).json({ success: false, error: 'User not authenticated' });
-    }
-
-    const resourceUserId = parseInt(req.params[paramName]);
-
-    if (req.user.id !== resourceUserId) {
-      return res.status(403).json({ success: false, error: 'Access denied to this resource' });
-    }
-
-    next();
-  };
-}
-
-// Helper function to get authenticated user with type safety
-function getAuthenticatedUser(req: express.Request): { id: number; email: string; shop_name: string } {
-  if (!req.user) {
-    throw new Error('User not authenticated');
-  }
-  return req.user;
-}
-
 // Public routes (no authentication required)
 app.post('/api/register', async (req, res) => {
   const { shopName, email, password } = req.body;
