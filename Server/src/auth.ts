@@ -86,10 +86,8 @@ export async function loginUser(
   }
 }
 
-// Middleware to verify user owns the resource they're accessing
 export function requireResourceOwnership(paramName = 'userId') {
   return (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    // Check if user is defined (should always be true if authenticateToken ran first)
     if (!req.user) {
       return res.status(401).json({ success: false, error: 'User not authenticated' });
     }
@@ -104,20 +102,17 @@ export function requireResourceOwnership(paramName = 'userId') {
   };
 }
 
-async function authenticateToken(req: express.Request, res: express.Response, next: express.NextFunction) {
+export async function authenticateToken(req: express.Request, res: express.Response, next: express.NextFunction) {
   try {
-    // Get token from Authorization header
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
       return res.status(401).json({ success: false, error: 'Access token required' });
     }
 
-    // Import the token verification function
     const { verifyTokenOwnership } = await import('./auth.js');
 
-    // Verify token and get user
     const result = await verifyTokenOwnership(token);
 
     if (!result.valid || !result.user) {
