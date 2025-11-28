@@ -104,6 +104,34 @@ Tracks inventory movements.
 | MovementDate | TEXT | NOT NULL | Movement timestamp |
 | InventoryID | INTEGER | NOT NULL, FOREIGN KEY | References inventory(OrderID) |
 
+## API Operations
+
+### Product Operations
+- `createProduct()` - Add new product to catalog
+- `getProductByBarcode()` - Retrieve product by barcode
+- `getAllProducts()` - Get all products
+- `updateProduct()` - Modify product details
+
+### Inventory Operations
+- `addInventoryBatch()` - Add stock batch with pricing
+- `getProductStockLevel()` - Check current stock quantity
+- `reduceInventoryFIFO()` - Remove stock using FIFO method with automatic stock movement tracking
+
+### Customer Operations
+- `createCustomer()` - Add new customer
+- `getCustomers()` - Retrieve all customers
+
+### Supplier Operations
+- `createSupplier()` - Add new supplier
+- `getSuppliers()` - Retrieve all suppliers
+- `linkSupplierToProduct()` - Associate supplier with product
+
+### Transaction & Analytics Operations
+- `createTransaction()` - Record financial transaction
+- `getTransactionHistory()` - Retrieve transaction records with optional type filtering
+- `getLowStockAlerts()` - Get products below stock threshold
+- `getDailySalesTotal()` - Calculate daily sales revenue
+
 ## Directory Structure
 
 ```
@@ -113,4 +141,14 @@ project-root/
 │   └── {folder_hash}/
 │       ├── user.db (user's business database)
 │       └── images/ (user's product images)
+├── database_core.js (core database setup & user management)
+└── database_ops.js (business operations API)
 ```
+
+## Key Features
+
+- **Foreign Key Enforcement**: All user databases enable foreign key constraints
+- **Transaction Safety**: Inventory operations use database transactions for data consistency
+- **FIFO Inventory Management**: Stock reduction follows first-in-first-out methodology
+- **Isolated Data**: Each user's business data is completely separated
+- **Comprehensive Analytics**: Built-in reporting for sales, stock levels, and transactions
