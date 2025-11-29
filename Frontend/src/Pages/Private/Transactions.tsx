@@ -20,7 +20,7 @@ export default function Transactions() {
   return (
     <Container>
       <ContainerInner>
-
+        
       </ContainerInner>
     </Container>
   )

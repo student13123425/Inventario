@@ -1,5 +1,8 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
+import { fetchSuppliers } from '../../script/network';
+import { getToken } from '../../script/utils';
+import type { SupplierResponse } from '../../script/objects';
 
 const Container = styled.div`
   width: 100vw;
@@ -14,9 +17,28 @@ const ContainerInner = styled.div`
   padding: 1rem;
   gap: 1rem;
 `
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+async function getSupplyers(setSuppliers:Function,setError:Function){
+  try{
+     const token=await getToken();
+     if(token){
+      const out=await fetchSuppliers(token);
+      if(out.success==true)
+        setSuppliers(out.suppliers);
+      else
+        setError("Failed geting supplyers")
+     }
+  }catch(e){
+      setError("Failed geting supplyers")
+  }
+}
 
-
-export default function ManageSupplyers() {
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+export default function ManageSupplyers(props:{setError:Function}) {
+  const [Supplyers,setSuppliers]=useState<SupplierResponse[]|null>(null);
+  useEffect(()=>{
+       getSupplyers(setSuppliers,props.setError)
+  })
   return (
     <Container>
       <ContainerInner>
