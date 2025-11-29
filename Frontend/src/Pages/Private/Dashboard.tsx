@@ -18,7 +18,7 @@ const Container = styled.div`
 
 const ContainerInner = styled.div`
   margin: auto;
-  width: 1300px;
+  width: 1000px;
   max-width: 100vw;
   display: flex;
   padding: 1rem;
