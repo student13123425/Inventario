@@ -17,7 +17,7 @@ export default function DashBoard(props:{setError:Function}) {
   const [SalesLastMonth, setSalesLastMonth] = useState<number|null>(null);
   const [LowStockAlerts, setLowStockAlerts] = useState<null|LowStockAlert[]>(null);
   const [SalesYesterday, setSalesYesterday] = useState<null|number>(null);
-
+  
   useEffect(() => {
     const token = getToken()
     console.log(token);
