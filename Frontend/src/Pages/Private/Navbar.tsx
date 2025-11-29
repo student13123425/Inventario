@@ -139,11 +139,14 @@ const formatButtonName = (name: string) => {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-export default function Navbar(props:{Logout:Function}) {
+export default function Navbar(props:{Logout:Function,setCurrentPage:Function}) {
   const BTN_NAMES = ["Dashboard", "Manage Supplyers", "Product Catalogue","Inventory Management","Transactions"]
   const [Selected, setSelected] = useState<string>(BTN_NAMES[0])
 
   const handleButtonClick = (buttonName: string) => {
+    const index=BTN_NAMES.indexOf(buttonName);
+    if(typeof index==="number")
+      props.setCurrentPage(index)
     setSelected(buttonName)
   }
 
