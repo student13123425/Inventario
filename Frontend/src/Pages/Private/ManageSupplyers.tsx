@@ -206,6 +206,7 @@ export default function ManageSupplyers(props: { setError: Function }) {
         await createSupplier(token,{Name:supplyer.Name,email:supplyer.email,phone_number:supplyer.phone_number})
         await getSupplyers(setSuppliers, props.setError)
       }
+      setIsAddingSupplyers(false);
     }}/>
   return (
     <Container>
