@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
-import { fetchSuppliers } from '../../script/network';
+import { createSupplier, fetchSuppliers } from '../../script/network';
 import { getToken } from '../../script/utils';
 import type { SupplierResponse } from '../../script/objects';
 import LoadingComponent from './LoadingComponent';
 import { FaTimesCircle, FaPlus } from 'react-icons/fa';
 import SupplyerItem from '../../Components/ManageSupplyers/SupplyerItem';
+import AddSupplyer from '../../Components/ManageSupplyers/AddSupplyer';
 
 const Container = styled.div`
   width: 100vw;
@@ -55,8 +56,8 @@ const BtnContainer = styled.div`
 
 const TitleContainer = styled.div`
   width: 100%;
-  padding: 1.5rem 2rem;
-  background-color: #ffffff;
+  padding: 0.75rem 1rem;
+  background-color: #0001;
   color: #111827;
   font-size: 1.5rem;
   font-weight: 700;
@@ -191,14 +192,21 @@ async function getSupplyers(setSuppliers: Function, setError: Function) {
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export default function ManageSupplyers(props: { setError: Function }) {
   const [Supplyers, setSuppliers] = useState<SupplierResponse[] | null>(null);
-  
+  const [IsAddingSupplyers,setIsAddingSupplyers]=useState<boolean>(false);
   useEffect(() => {
     getSupplyers(setSuppliers, props.setError)
   }, [props.setError])
 
   if (Supplyers === null)
     return <LoadingComponent msg='Loading Suppliers...' />
-
+  if(IsAddingSupplyers)
+    return <AddSupplyer onBack={()=>setIsAddingSupplyers(false)} onClose={()=>setIsAddingSupplyers(false)} onSubmit={async (supplyer: { Name: string; phone_number?: string; email?: string })=>{
+      const token=await getToken();
+      if(token){
+        await createSupplier(token,{Name:supplyer.Name,email:supplyer.email,phone_number:supplyer.phone_number})
+        await getSupplyers(setSuppliers, props.setError)
+      }
+    }}/>
   return (
     <Container>
       <ContainerInner>
@@ -215,7 +223,7 @@ export default function ManageSupplyers(props: { setError: Function }) {
             {Supplyers.map((it, i) => <SupplyerItem item={it} key={i} />)}
           </Contents>
           <BtnContainer>
-            <Button>
+            <Button onClick={()=>setIsAddingSupplyers(true)}>
               <AddIcon />
               Register New Supplier
             </Button>
