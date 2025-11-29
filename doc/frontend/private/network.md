@@ -1,3 +1,58 @@
+# API Functions Quick Reference
+
+## Authentication
+| Function | What It Gets | Endpoint |
+|----------|-------------|----------|
+| `login()` | JWT token string | `POST /api/login` |
+| `register()` | JWT token string | `POST /api/register` |
+
+## Product Management
+| Function | What It Gets | Endpoint |
+|----------|-------------|----------|
+| `createProduct()` | Object with `batchId` | `POST /api/products` |
+| `fetchProducts()` | Object with `success` and array of products | `GET /api/products` |
+| `fetchProductByBarcode()` | Object with `success` and single product | `GET /api/products/barcode/{barcode}` |
+| `updateProduct()` | Object with `success` and optional message | `PUT /api/products/{id}` |
+
+## Inventory Management
+| Function | What It Gets | Endpoint |
+|----------|-------------|----------|
+| `addInventoryBatch()` | Object with `batchId` | `POST /api/inventory` |
+| `fetchStockLevel()` | Object with `stockLevel` number | `GET /api/inventory/stock-level/{productId}` |
+| `reduceInventory()` | Object with `success` and optional message | `POST /api/inventory/reduce` |
+
+## Customer Management
+| Function | What It Gets | Endpoint |
+|----------|-------------|----------|
+| `createCustomer()` | Object with `batchId` | `POST /api/customers` |
+| `fetchCustomers()` | Object with `success` and array of customers | `GET /api/customers` |
+
+## Supplier Management
+| Function | What It Gets | Endpoint |
+|----------|-------------|----------|
+| `createSupplier()` | Object with `batchId` | `POST /api/suppliers` |
+| `fetchSuppliers()` | Object with `success` and array of suppliers | `GET /api/suppliers` |
+| `linkSupplierProduct()` | Object with `success` and optional message | `POST /api/suppliers/link` |
+
+## Transaction Management
+| Function | What It Gets | Endpoint |
+|----------|-------------|----------|
+| `createTransaction()` | Object with `batchId` | `POST /api/transactions` |
+| `fetchTransactions()` | Object with `success` and array of transactions | `GET /api/transactions` |
+
+## Analytics
+| Function | What It Gets | Endpoint |
+|----------|-------------|----------|
+| `fetchLowStockAlerts()` | Object with `success` and array of low stock alerts | `GET /api/analytics/low-stock` |
+| `fetchDailySales()` | Object with `success` and `dailySales` number | `GET /api/analytics/daily-sales` |
+
+## Response Pattern Summary
+- **Create operations** (`createProduct`, `createCustomer`, etc.): Return `{ batchId: number }`
+- **Fetch multiple items** (`fetchProducts`, `fetchCustomers`, etc.): Return `{ success: boolean, items: Array }`
+- **Fetch single item** (`fetchProductByBarcode`, `fetchStockLevel`): Return `{ success: boolean, item: Object }` or `{ data: value }`
+- **Update operations** (`updateProduct`, `reduceInventory`, etc.): Return `{ success: boolean, message?: string }`
+- **Authentication**: Return JWT token string directly
+
 # Inventory Management System API Client Documentation
 
 ## Overview
