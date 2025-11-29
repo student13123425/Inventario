@@ -3,6 +3,7 @@ import styled from 'styled-components'
 import { fetchSuppliers } from '../../script/network';
 import { getToken } from '../../script/utils';
 import type { SupplierResponse } from '../../script/objects';
+import LoadingComponent from './LoadingComponent';
 
 const Container = styled.div`
   width: 100vw;
@@ -39,6 +40,8 @@ export default function ManageSupplyers(props:{setError:Function}) {
   useEffect(()=>{
        getSupplyers(setSuppliers,props.setError)
   })
+  if(Supplyers===null)
+    return <LoadingComponent msg='Loading Supplyers...'/>
   return (
     <Container>
       <ContainerInner>
