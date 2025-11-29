@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import PublicPages from './Pages/Public/PublicPages'
 import PrivatePages from './Pages/Private/PrivatePages'
+import "./style.css"
 
 function App() {
   const [LoginToken, setLoginToken] = useState<string | null>(null)
