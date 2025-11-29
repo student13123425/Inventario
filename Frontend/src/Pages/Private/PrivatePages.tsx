@@ -12,7 +12,7 @@ const PageContainer=styled.div`
 export default function PrivatePages(props:{setError:Function,LoginToken:string, onLogout:Function}) {
   return (
       <>
-        <Navbar/>
+        <Navbar Logout={props.onLogout}/>
         <PageContainer>
           <DashBoard setError={props.setError}/>
         </PageContainer>
