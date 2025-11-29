@@ -19,7 +19,7 @@ const Center = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 2rem;
+    gap: 1rem;
 `
 
 const BtnContainer = styled.div`
@@ -59,6 +59,7 @@ const Button = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
   
   &:hover {
     color: #4f46e5;
@@ -78,6 +79,7 @@ const ButtonSelected = styled.button`
   cursor: pointer;
   box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.3);
   transition: all 0.2s ease;
+  white-space: nowrap;
   
   &:hover {
     background-color: #4338ca;
