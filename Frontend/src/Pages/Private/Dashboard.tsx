@@ -10,6 +10,7 @@ import {
 } from '../../script/network';
 import { getToken } from '../../script/utils';
 import RightCard from '../../Components/Dashboard/RightCard';
+import LoadingComponent from './LoadingComponent';
 
 const Container = styled.div`
   width: 100vw;
@@ -22,6 +23,7 @@ const ContainerInner = styled.div`
   max-width: 100vw;
   display: flex;
   padding: 1rem;
+  gap: 1rem;
 `
 
 const Side = styled.div`
@@ -80,14 +82,6 @@ const DashboardGrid = styled.div`
   margin-bottom: 2rem;
 `
 
-const LoadingComponent = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  color: #6b7280;
-  font-size: 1rem;
-`
 
 const formatCurrency = (amount: number | null) => {
   if (amount === null) return '-';
@@ -169,15 +163,12 @@ export default function DashBoard(props:{setError:Function}) {
   }, [props]);
 
   const isDataLoaded = NrOfProducts !== null && NrOfSuppliers !== null && SalesYesterday !== null && SalesLastMonth !== null;
-
+  if(!isDataLoaded)
+    return <LoadingComponent msg={"Loading dashboard daLoadingComponentta..."}/>
   return (
     <Container>
       <ContainerInner>
         <Side>
-          {!isDataLoaded ? (
-            <LoadingComponent>Loading dashboard data...</LoadingComponent>
-          ) : (
-            <>
               <SectionTitle>Dashboard Overview</SectionTitle>
               
               <DashboardGrid>
@@ -213,8 +204,6 @@ export default function DashBoard(props:{setError:Function}) {
                   <MetricSubtitle>Total revenue from last 30 days</MetricSubtitle>
                 </MetricCard>
               </DashboardGrid>
-            </>
-          )}
         </Side>
         <Side>
           <RightCard data={LowStockAlerts}/>
