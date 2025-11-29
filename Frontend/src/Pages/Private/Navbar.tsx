@@ -125,10 +125,6 @@ const Logo = styled.div`
   font-weight: 800;
   color: #4f46e5;
   transition: transform 0.2s ease;
-
-  &:hover {
-    transform: scale(1.05);
-  }
 `
 
 const formatButtonName = (name: string) => {
