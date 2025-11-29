@@ -105,7 +105,9 @@ export default function DashBoard(props:{setError:Function}) {
   return (
     <Container>
       <ContainerInner>
-        <Side></Side>
+        <Side>
+          
+        </Side>
         <Side>
           <RightCard data={LowStockAlerts}/>
         </Side>
