@@ -205,3 +205,23 @@ export function fetchDailySales(token: string, date?: string): Promise<{ success
       throw new Error('Failed to fetch daily sales');
     });
 }
+
+export function checkToken(token: string): Promise<{ 
+  success: boolean; 
+  user: { id: number; email: string; shop_name: string };
+  message: string 
+}> {
+  return axiosInstance.get<{ 
+    success: boolean; 
+    user: { id: number; email: string; shop_name: string };
+    message: string 
+  }>('/api/check-token', { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      if (axios.isAxiosError(error) && error.response) {
+        const data = error.response.data as { success: boolean; error: string };
+        throw new Error(data.error || 'Token validation failed');
+      }
+      throw new Error('Token validation failed');
+    });
+}

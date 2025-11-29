@@ -4,18 +4,29 @@ import PrivatePages from './Pages/Private/PrivatePages'
 import "./style.css"
 import NetworkError from './Pages/NetworkError'
 import { deleteToken, setToken } from './script/utils'
+import { checkToken } from './script/network'
 
 function App() {
   const [LoginToken, setLoginToken] = useState<string | null>(null)
   const [Error,setError]=useState<string|null>(null);
   // Check for token in localStorage on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem('authToken')
+    const storedToken = localStorage.getItem('authToken');
     if (storedToken) {
-      setLoginToken(storedToken)
+      checkToken(storedToken)
+        .then(response => {
+          if (response.success) {
+            setLoginToken(storedToken);
+          } else {
+            deleteToken();
+          }
+        })
+        .catch(error => {
+          console.error('Token validation failed:', error);
+          deleteToken();
+        });
     }
-  }, [])
-
+  }, []);
   // Handle logout
   const handleLogout = () => {
     localStorage.removeItem('authToken')
