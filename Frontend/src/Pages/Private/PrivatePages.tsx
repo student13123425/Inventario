@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react';
+import styled from 'styled-components';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-export default function PrivatePages(props:{LoginToken:string,onLogout:Function}) {
+
+export default function PrivatePages({ LoginToken, onLogout }: PrivatePagesProps) {
   return (
-    <div>PrivatePages</div>
-  )
+      <></>
+  );
 }
