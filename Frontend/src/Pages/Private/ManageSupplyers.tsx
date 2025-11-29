@@ -7,6 +7,7 @@ import LoadingComponent from './LoadingComponent';
 import { FaTimesCircle, FaPlus } from 'react-icons/fa';
 import SupplyerItem from '../../Components/ManageSupplyers/SupplyerItem';
 import AddSupplyer from '../../Components/ManageSupplyers/AddSupplyer';
+import EditSupplyer from '../../Components/ManageSupplyers/EditSupplyer';
 
 const Container = styled.div`
   width: 100vw;
@@ -194,6 +195,7 @@ async function getSupplyers(setSuppliers: Function, setError: Function) {
 export default function ManageSupplyers(props: { setError: Function }) {
   const [Supplyers, setSuppliers] = useState<SupplierResponse[] | null>(null);
   const [IsAddingSupplyers,setIsAddingSupplyers]=useState<boolean>(false);
+  const [IsEditingSupplyer,setIsEditingSupplyer]=useState<null|SupplierResponse>(null);
   useEffect(() => {
     getSupplyers(setSuppliers, props.setError)
   }, [props.setError])
@@ -210,6 +212,8 @@ export default function ManageSupplyers(props: { setError: Function }) {
       }
       setIsAddingSupplyers(false);
     }}/>
+  if(IsEditingSupplyer!==null)
+    return <EditSupplyer item={IsEditingSupplyer}/>
   return (
     <Container>
       <ContainerInner>
@@ -223,7 +227,7 @@ export default function ManageSupplyers(props: { setError: Function }) {
                 <SubText>Get started by adding your first supplier</SubText>
               </EmptyList>
             ) : <Hide />}
-            {Supplyers.map((it, i) => <SupplyerItem index={i} item={it} key={i} />)}
+            {Supplyers.map((it, i) => <SupplyerItem setEditing={setIsEditingSupplyer} index={i} item={it} key={i} />)}
           </Contents>
           <BtnContainer>
             <Button onClick={()=>setIsAddingSupplyers(true)}>
