@@ -138,3 +138,4 @@ export function getAuthenticatedUser(req: express.Request): { id: number; email:
   }
   return req.user;
 }
+
