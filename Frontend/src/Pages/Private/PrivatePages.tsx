@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import Navbar from './Navbar';
-import DashBoard from './DashBoard';
 import ManageSupplyers from './ManageSupplyers';
 import ProductCatalogue from './ProductCatalogue';
 import InventoryManagement from './InventoryManagement';
 import Transactions from './Transactions';
+import DashBoard from './Dashboard';
 
 const PageContainer=styled.div`
   width: 100vw;
