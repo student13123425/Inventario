@@ -35,7 +35,7 @@ declare global {
         id: number;
         email: string;
         shop_name: string;
-        folder_hash: string;
+        folder_hash: string; // Add this
       };
     }
   }
@@ -209,6 +209,23 @@ app.post('/api/inventory/reduce', authenticateToken, async (req, res) => {
     console.error('Error reducing inventory:', error);
     const statusCode = error.message === 'Insufficient stock' ? 400 : 500;
     res.status(statusCode).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/check-token', authenticateToken, async (req, res) => {
+  try {
+    res.json({ 
+      success: true, 
+      user: {
+        id: req.user!.id,
+        email: req.user!.email,
+        shop_name: req.user!.shop_name
+      },
+      message: 'Token is valid'
+    });
+  } catch (error: any) {
+    console.error('Token verification error:', error);
+    res.status(500).json({ success: false, error: 'Token verification failed' });
   }
 });
 
