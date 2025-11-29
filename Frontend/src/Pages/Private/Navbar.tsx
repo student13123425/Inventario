@@ -1,5 +1,16 @@
 import React, { useState } from 'react'
-import styled from 'styled-components'
+import styled, { keyframes } from 'styled-components'
+
+const slideIn = keyframes`
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+`
 
 const Container = styled.div`
     width: 100vw;
@@ -60,11 +71,29 @@ const Button = styled.button`
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  position: relative;
+  overflow: hidden;
   
   &:hover {
     color: #4f46e5;
     background-color: #f9fafb;
     transform: translateY(-1px);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background-color: #4f46e5;
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+  }
+
+  &:hover::after {
+    width: 80%;
   }
 `
 
@@ -80,7 +109,10 @@ const ButtonSelected = styled.button`
   box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.3);
   transition: all 0.2s ease;
   white-space: nowrap;
-  
+  animation: ${slideIn} 0.3s ease-out;
+  position: relative;
+  overflow: hidden;
+
   &:hover {
     background-color: #4338ca;
     transform: translateY(-1px);
@@ -92,6 +124,11 @@ const Logo = styled.div`
   font-size: 1.5rem;
   font-weight: 800;
   color: #4f46e5;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
 `
 
 const formatButtonName = (name: string) => {
@@ -106,6 +143,10 @@ export default function Navbar(props:{Logout:Function}) {
   const BTN_NAMES = ["Dashboard", "ManageSupplyers", "ProductCatalogue"]
   const [Selected, setSelected] = useState<string>(BTN_NAMES[0])
 
+  const handleButtonClick = (buttonName: string) => {
+    setSelected(buttonName)
+  }
+
   return (
     <Container>
       <BtnContainer>
@@ -114,7 +155,10 @@ export default function Navbar(props:{Logout:Function}) {
       <Center>
         {BTN_NAMES.map((it, i) => 
           Selected !== it ? 
-            <Button onClick={() => { setSelected(it) }} key={i}>
+            <Button 
+              onClick={() => handleButtonClick(it)} 
+              key={i}
+            >
               {formatButtonName(it)}
             </Button> : 
             <ButtonSelected key={i}>
