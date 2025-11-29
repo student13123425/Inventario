@@ -5,3 +5,5 @@ Frontend/node_modules/
 
 # Block node_modules inside the Server directory
 Server/node_modules/
+Server/users.db
+Server/data
