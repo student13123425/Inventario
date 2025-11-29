@@ -82,7 +82,8 @@ const Contents = styled.div`
   max-height: 600px;
   overflow-y: auto;
   padding: 1rem 0;
-  
+  padding: 10px;
+  gap: 10px;
   @media (max-width: 768px) {
     max-height: 500px;
     padding: 0.5rem 0;
@@ -196,7 +197,8 @@ export default function ManageSupplyers(props: { setError: Function }) {
   useEffect(() => {
     getSupplyers(setSuppliers, props.setError)
   }, [props.setError])
-
+  console.log(Supplyers);
+  
   if (Supplyers === null)
     return <LoadingComponent msg='Loading Suppliers...' />
   if(IsAddingSupplyers)
@@ -221,7 +223,7 @@ export default function ManageSupplyers(props: { setError: Function }) {
                 <SubText>Get started by adding your first supplier</SubText>
               </EmptyList>
             ) : <Hide />}
-            {Supplyers.map((it, i) => <SupplyerItem item={it} key={i} />)}
+            {Supplyers.map((it, i) => <SupplyerItem index={i} item={it} key={i} />)}
           </Contents>
           <BtnContainer>
             <Button onClick={()=>setIsAddingSupplyers(true)}>
