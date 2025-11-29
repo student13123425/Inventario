@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getUserByEmail, createUser } from './database_core.js';
 import express from 'express';
 
-const IsDebug = true;
+const IsDebug = false;
 const jwtSecret = 'your_jwt_secret_key_here_change_in_production';
 const saltRounds = 12;
 
