@@ -38,11 +38,6 @@ const Card = styled.div`
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
-  
-  &:hover {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    transform: translateY(-2px);
-  }
 `
 
 const BtnContainer = styled.div`
@@ -109,12 +104,6 @@ const Button = styled.button`
   gap: 0.5rem;
   transition: all 0.2s ease;
   box-shadow: 0 1px 2px 0 rgba(79, 70, 229, 0.05);
-  
-  &:hover {
-    background-color: #4338ca;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -1px rgba(79, 70, 229, 0.06);
-  }
   
   &:active {
     transform: translateY(0);
