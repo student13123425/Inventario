@@ -4,7 +4,7 @@ import Navbar from './Navbar';
 
 const PageContainer=styled.div`
   width: 100vw;
-  height: calc(100vh - 3rem);
+  height: calc(100vh - 3.3rem);
 `
 
 export default function PrivatePages({ LoginToken, onLogout }: PrivatePagesProps) {
@@ -12,7 +12,7 @@ export default function PrivatePages({ LoginToken, onLogout }: PrivatePagesProps
       <>
         <Navbar/>
         <PageContainer>
-
+          
         </PageContainer>
       </>
   );
