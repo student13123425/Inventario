@@ -9,7 +9,7 @@ function App() {
   useEffect(() => {
     const storedToken = localStorage.getItem('authToken')
     if (storedToken) {
-      // setLoginToken(storedToken)
+      setLoginToken(storedToken)
     }
   }, [])
 

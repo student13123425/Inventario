@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-
-// --- Styled Components ---
+import { login, register } from '../../script/network';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -44,10 +43,7 @@ const BackButton = styled.button`
   display: flex;
   align-items: center;
   gap: 0.25rem;
-
-  &:hover {
-    text-decoration: underline;
-  }
+  &:hover { text-decoration: underline; }
 `;
 
 const Logo = styled.h2`
@@ -88,15 +84,8 @@ const Input = styled.input`
   font-size: 0.95rem;
   transition: all 0.2s;
   outline: none;
-
-  &:focus {
-    border-color: #4f46e5;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-  }
-
-  &::placeholder {
-    color: #9ca3af;
-  }
+  &:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+  &::placeholder { color: #9ca3af; }
 `;
 
 const ErrorMessage = styled.div`
@@ -110,10 +99,7 @@ const ErrorMessage = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-
-  &::before {
-    content: '⚠️';
-  }
+  &::before { content: 'Warning'; }
 `;
 
 const SuccessMessage = styled.div`
@@ -127,10 +113,7 @@ const SuccessMessage = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-
-  &::before {
-    content: '✓';
-  }
+  &::before { content: 'Checkmark'; }
 `;
 
 const ConfirmationBox = styled.div`
@@ -149,10 +132,7 @@ const ConfirmationTitle = styled.h3`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-
-  &::before {
-    content: 'ℹ️';
-  }
+  &::before { content: 'Info'; }
 `;
 
 const DetailRow = styled.div`
@@ -161,10 +141,7 @@ const DetailRow = styled.div`
   align-items: center;
   padding: 0.5rem 0;
   border-bottom: 1px solid #dbeafe;
-
-  &:last-child {
-    border-bottom: none;
-  }
+  &:last-child { border-bottom: none; }
 `;
 
 const DetailLabel = styled.span`
@@ -190,15 +167,8 @@ const SubmitButton = styled.button`
   cursor: pointer;
   transition: background-color 0.2s;
   margin-top: 0.5rem;
-
-  &:hover:not(:disabled) {
-    background-color: #4338ca;
-  }
-
-  &:disabled {
-    background-color: #9ca3af;
-    cursor: not-allowed;
-  }
+  &:hover:not(:disabled) { background-color: #4338ca; }
+  &:disabled { background-color: #9ca3af; cursor: not-allowed; }
 `;
 
 const ButtonGroup = styled.div`
@@ -218,15 +188,8 @@ const SecondaryButton = styled.button`
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background-color: #e5e7eb;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  &:hover:not(:disabled) { background-color: #e5e7eb; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
 const PrimaryButton = styled(SubmitButton)`
@@ -242,17 +205,8 @@ const Divider = styled.div`
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-
-  &::before,
-  &::after {
-    content: '';
-    flex: 1;
-    border-top: 1px solid #e5e7eb;
-  }
-
-  span {
-    padding: 0 0.75rem;
-  }
+  &::before, &::after { content: ''; flex: 1; border-top: 1px solid #e5e7eb; }
+  span { padding: 0 0.75rem; }
 `;
 
 const Footer = styled.div`
@@ -270,13 +224,8 @@ const LinkText = styled.button`
   cursor: pointer;
   padding: 0;
   margin-left: 0.25rem;
-
-  &:hover {
-    text-decoration: underline;
-  }
+  &:hover { text-decoration: underline; }
 `;
-
-// --- Component ---
 
 interface AuthPageProps {
   mode: number;
@@ -286,11 +235,7 @@ interface AuthPageProps {
 
 const AuthPage: React.FC<AuthPageProps> = ({ mode, setMode, setLoginToken }) => {
   const isLogin = mode === 1;
-  const [formData, setFormData] = useState({
-    shopName: '',
-    email: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ shopName: '', email: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -305,25 +250,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode, setMode, setLoginToken }) => 
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    // Clear errors when user starts typing
+    setFormData({ ...formData, [e.target.name]: e.target.value });
     if (error) setError(null);
     if (success) setSuccess(null);
   };
 
   const handleInitialSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // For login, submit directly
-    if (isLogin) {
-      handleFinalSubmit();
-    } else {
-      // For registration, show confirmation
-      setShowConfirmation(true);
-    }
+    if (isLogin) handleFinalSubmit();
+    else setShowConfirmation(true);
   };
 
   const handleFinalSubmit = async () => {
@@ -332,41 +267,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode, setMode, setLoginToken }) => 
     setIsLoading(true);
 
     try {
-      const endpoint = isLogin ? '/api/login' : '/api/register';
-      const payload = isLogin 
-        ? { email: formData.email, password: formData.password }
-        : { shopName: formData.shopName, email: formData.email, password: formData.password };
+      const token = isLogin
+        ? await login({ email: formData.email, password: formData.password })
+        : await register({ shopName: formData.shopName, email: formData.email, password: formData.password });
 
-      const response = await fetch(`http://localhost:3000${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Something went wrong');
-      }
-
-      if (data.token) {
-        setSuccess(isLogin ? 'Login successful!' : 'Account created successfully!');
-        
-        setTimeout(() => {
-          setLoginToken(data.token);
-        }, 800);
-      } else {
-        throw new Error('No token received from server');
-      }
-
+      setSuccess(isLogin ? 'Login successful!' : 'Account created successfully!');
+      setTimeout(() => setLoginToken(token), 800);
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.');
       setShowConfirmation(false);
     } finally {
       setIsLoading(false);
@@ -380,22 +288,18 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode, setMode, setLoginToken }) => 
     setShowConfirmation(false);
   };
 
-  const handleEditDetails = () => {
-    setShowConfirmation(false);
-  };
+  const handleEditDetails = () => setShowConfirmation(false);
 
   return (
     <PageContainer>
       <AuthCard>
         <Header>
-          <BackButton onClick={handleBack}>
-            ← Back
-          </BackButton>
+          <BackButton onClick={handleBack}>Back</BackButton>
           <Logo>Inventrio.</Logo>
           <SubText>
-            {isLogin 
-              ? 'Welcome back! Please enter your details.' 
-              : showConfirmation 
+            {isLogin
+              ? 'Welcome back! Please enter your details.'
+              : showConfirmation
                 ? 'Please confirm your account details.'
                 : 'Create your account and start tracking today.'}
           </SubText>
@@ -409,48 +313,45 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode, setMode, setLoginToken }) => 
             {!isLogin && (
               <InputGroup>
                 <Label htmlFor="shopName">Shop Name</Label>
-                <Input 
-                  type="text" 
-                  id="shopName" 
-                  name="shopName" 
+                <Input
+                  type="text"
+                  id="shopName"
+                  name="shopName"
                   placeholder="e.g. Downtown Market"
                   value={formData.shopName}
                   onChange={handleChange}
-                  required={!isLogin}
+                  required
                   disabled={isLoading}
                 />
               </InputGroup>
             )}
-
             <InputGroup>
               <Label htmlFor="email">Email Address</Label>
-              <Input 
-                type="email" 
-                id="email" 
-                name="email" 
+              <Input
+                type="email"
+                id="email"
+                name="email"
                 placeholder="you@example.com"
                 value={formData.email}
                 onChange={handleChange}
-                required 
+                required
                 disabled={isLoading}
               />
             </InputGroup>
-
             <InputGroup>
               <Label htmlFor="password">Password</Label>
-              <Input 
-                type="password" 
-                id="password" 
-                name="password" 
+              <Input
+                type="password"
+                id="password"
+                name="password"
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
-                required 
+                required
                 disabled={isLoading}
                 minLength={6}
               />
             </InputGroup>
-
             <SubmitButton type="submit" disabled={isLoading}>
               {isLogin ? 'Sign In' : 'Continue'}
             </SubmitButton>
@@ -459,34 +360,24 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode, setMode, setLoginToken }) => 
           <>
             <ConfirmationBox>
               <ConfirmationTitle>Confirm Your Details</ConfirmationTitle>
-              
               <DetailRow>
                 <DetailLabel>Shop Name:</DetailLabel>
                 <DetailValue>{formData.shopName}</DetailValue>
               </DetailRow>
-              
               <DetailRow>
                 <DetailLabel>Email:</DetailLabel>
                 <DetailValue>{formData.email}</DetailValue>
               </DetailRow>
-              
               <DetailRow>
                 <DetailLabel>Password:</DetailLabel>
                 <DetailValue>{'•'.repeat(formData.password.length)}</DetailValue>
               </DetailRow>
             </ConfirmationBox>
-
             <ButtonGroup>
-              <SecondaryButton 
-                onClick={handleEditDetails} 
-                disabled={isLoading}
-              >
+              <SecondaryButton onClick={handleEditDetails} disabled={isLoading}>
                 Edit Details
               </SecondaryButton>
-              <PrimaryButton 
-                onClick={handleFinalSubmit} 
-                disabled={isLoading}
-              >
+              <PrimaryButton onClick={handleFinalSubmit} disabled={isLoading}>
                 {isLoading ? 'Creating account...' : 'Confirm & Create'}
               </PrimaryButton>
             </ButtonGroup>
@@ -495,10 +386,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode, setMode, setLoginToken }) => 
 
         {!showConfirmation && (
           <>
-            <Divider>
-              <span>or</span>
-            </Divider>
-
+            <Divider><span>or</span></Divider>
             <Footer>
               {isLogin ? "Don't have an account?" : "Already have an account?"}
               <LinkText onClick={toggleMode} disabled={isLoading}>
