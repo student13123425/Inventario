@@ -9,6 +9,27 @@ import {
   fetchDailySales 
 } from '../../script/network';
 import { getToken } from '../../script/utils';
+import RightCard from '../../Components/Dashboard/RightCard';
+
+const Container=styled.div`
+  width: 100vw;
+  height: 100%;
+`
+
+const ContainerInner=styled.div`
+  margin: auto;
+  width: 1300px;
+  max-width: 100vw;
+  display: flex;
+`
+
+const Side=styled.div`
+  flex: 1;
+  width: 100vh;
+  display: flex;
+  flex-direction: column;
+`
+
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export default function DashBoard(props:{setError:Function}) {
@@ -82,6 +103,13 @@ export default function DashBoard(props:{setError:Function}) {
   }, [props]);
 
   return (
-    <div></div>
+    <Container>
+      <ContainerInner>
+        <Side></Side>
+        <Side>
+          <RightCard data={LowStockAlerts}/>
+        </Side>
+      </ContainerInner>
+    </Container>
   )
 }
