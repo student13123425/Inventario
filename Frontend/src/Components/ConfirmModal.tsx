@@ -239,21 +239,28 @@ export default function ConfirmModal({
 }: ConfirmModalProps) {
   const [isClosing, setIsClosing] = useState<boolean>(false);
   const [isVisible, setIsVisible] = useState<boolean>(false);
+  const [pendingConfirm, setPendingConfirm] = useState<boolean>(false);
 
   // Open / close handling with animation
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
       setIsClosing(false);
+      setPendingConfirm(false);
     } else if (isVisible) {
       setIsClosing(true);
       const timer = setTimeout(() => {
         setIsVisible(false);
         setIsClosing(false);
+        // If there's a pending confirm, execute it after animation completes
+        if (pendingConfirm) {
+          onConfirm();
+          setPendingConfirm(false);
+        }
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, isVisible]);
+  }, [isOpen, isVisible, pendingConfirm, onConfirm]);
 
   const handleClose = () => {
     if (isClosing) return;
@@ -271,13 +278,25 @@ export default function ConfirmModal({
   };
 
   const handleConfirm = () => {
-    onConfirm();
-    handleClose();
+    if (isClosing) return;
+    
+    // Set pending confirm and start closing animation
+    setPendingConfirm(true);
+    setIsClosing(true);
+    
+    // Don't call onConfirm here - it will be called after animation completes
+    // in the useEffect cleanup
   };
 
   const handleCancel = () => {
-    onCancel();
-    handleClose();
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsVisible(false);
+      setIsClosing(false);
+      onCancel();
+      onClose();
+    }, 200);
   };
 
   // Prevent body scroll
@@ -309,7 +328,7 @@ export default function ConfirmModal({
               <Content>{content}</Content>
             </TextContent>
           </TitleSection>
-          <CloseButton onClick={handleClose}>
+          <CloseButton onClick={handleCancel}>
             <CloseIcon />
           </CloseButton>
         </ModalHeader>

@@ -49,10 +49,28 @@ export async function getAllProducts(folderHash: string): Promise<Product[]> {
 export async function updateProduct(folderHash: string, id: number, product: Partial<Product>): Promise<void> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
-    const updates = Object.keys(product).map(key => `${key} = ?`).join(', ');
-    const values = [...Object.values(product), id];
+    // Filter out undefined values
+    const keys = Object.keys(product).filter(k => product[k as keyof Product] !== undefined);
+    if (keys.length === 0) {
+        db.close();
+        return resolve();
+    }
+
+    const updates = keys.map(key => `${key} = ?`).join(', ');
+    const values = [...keys.map(k => product[k as keyof Product]), id];
     
     db.run(`UPDATE products SET ${updates} WHERE ID = ?`, values, (err) => {
+      db.close();
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}
+
+export async function deleteProduct(folderHash: string, id: number): Promise<void> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    db.run('DELETE FROM products WHERE ID = ?', [id], (err) => {
       db.close();
       if (err) reject(err);
       else resolve();
@@ -74,6 +92,38 @@ export async function addInventoryBatch(folderHash: string, batch: InventoryBatc
         else resolve(this.lastID);
       }
     );
+  });
+}
+
+export async function updateInventoryBatch(folderHash: string, orderId: number, batch: Partial<InventoryBatch>): Promise<void> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    const keys = Object.keys(batch).filter(k => batch[k as keyof InventoryBatch] !== undefined);
+    if (keys.length === 0) {
+        db.close();
+        return resolve();
+    }
+
+    const updates = keys.map(key => `${key} = ?`).join(', ');
+    const values = [...keys.map(k => batch[k as keyof InventoryBatch]), orderId];
+
+    // Note: Primary key for inventory is OrderID
+    db.run(`UPDATE inventory SET ${updates} WHERE OrderID = ?`, values, (err) => {
+      db.close();
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}
+
+export async function deleteInventoryBatch(folderHash: string, orderId: number): Promise<void> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    db.run('DELETE FROM inventory WHERE OrderID = ?', [orderId], (err) => {
+      db.close();
+      if (err) reject(err);
+      else resolve();
+    });
   });
 }
 
@@ -159,6 +209,7 @@ export async function reduceInventoryFIFO(folderHash: string, productId: number,
   });
 }
 
+// --- Customer Operations ---
 
 export async function createCustomer(folderHash: string, customer: Customer): Promise<number> {
   const db = await connectToUserDatabase(folderHash);
@@ -186,6 +237,37 @@ export async function getCustomers(folderHash: string): Promise<Customer[]> {
   });
 }
 
+export async function updateCustomer(folderHash: string, id: number, customer: Partial<Customer>): Promise<void> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    const keys = Object.keys(customer).filter(k => customer[k as keyof Customer] !== undefined);
+    if (keys.length === 0) {
+        db.close();
+        return resolve();
+    }
+    const updates = keys.map(key => `${key} = ?`).join(', ');
+    const values = [...keys.map(k => customer[k as keyof Customer]), id];
+    
+    db.run(`UPDATE customers SET ${updates} WHERE ID = ?`, values, (err) => {
+      db.close();
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}
+
+export async function deleteCustomer(folderHash: string, id: number): Promise<void> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    db.run('DELETE FROM customers WHERE ID = ?', [id], (err) => {
+      db.close();
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}
+
+// --- Supplier Operations ---
 
 export async function createSupplier(folderHash: string, supplier: Supplier): Promise<number> {
   const db = await connectToUserDatabase(folderHash);
@@ -209,6 +291,37 @@ export async function getSuppliers(folderHash: string): Promise<Supplier[]> {
       db.close();
       if (err) reject(err);
       else resolve(rows as Supplier[]);
+    });
+  });
+}
+
+export async function updateSupplier(folderHash: string, id: number, supplier: Partial<Supplier>): Promise<void> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    const keys = Object.keys(supplier).filter(k => supplier[k as keyof Supplier] !== undefined);
+    if (keys.length === 0) {
+        db.close();
+        return resolve();
+    }
+    const updates = keys.map(key => `${key} = ?`).join(', ');
+    const values = [...keys.map(k => supplier[k as keyof Supplier]), id];
+    
+    db.run(`UPDATE suppliers SET ${updates} WHERE ID = ?`, values, (err) => {
+      db.close();
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}
+
+export async function deleteSupplier(folderHash: string, id: number): Promise<void> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    // Note: This might fail if PRAGMA foreign_keys = ON and there are dependent transactions/products
+    db.run('DELETE FROM suppliers WHERE ID = ?', [id], (err) => {
+      db.close();
+      if (err) reject(err);
+      else resolve();
     });
   });
 }
@@ -261,6 +374,36 @@ export async function getTransactionHistory(folderHash: string, type?: 'Purchase
       db.close();
       if (err) reject(err);
       else resolve(rows as TransactionRecord[]);
+    });
+  });
+}
+
+export async function updateTransaction(folderHash: string, id: number, transaction: Partial<TransactionRecord>): Promise<void> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    const keys = Object.keys(transaction).filter(k => transaction[k as keyof TransactionRecord] !== undefined);
+    if (keys.length === 0) {
+        db.close();
+        return resolve();
+    }
+    const updates = keys.map(key => `${key} = ?`).join(', ');
+    const values = [...keys.map(k => transaction[k as keyof TransactionRecord]), id];
+    
+    db.run(`UPDATE Transactions SET ${updates} WHERE ID = ?`, values, (err) => {
+      db.close();
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}
+
+export async function deleteTransaction(folderHash: string, id: number): Promise<void> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    db.run('DELETE FROM Transactions WHERE ID = ?', [id], (err) => {
+      db.close();
+      if (err) reject(err);
+      else resolve();
     });
   });
 }

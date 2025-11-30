@@ -8,16 +8,25 @@ import {
   getProductByBarcode,
   getAllProducts,
   updateProduct,
+  deleteProduct,
   addInventoryBatch,
+  updateInventoryBatch,
+  deleteInventoryBatch,
   getProductStockLevel,
   reduceInventoryFIFO,
   createCustomer,
   getCustomers,
+  updateCustomer,
+  deleteCustomer,
   createSupplier,
   getSuppliers,
+  updateSupplier,
+  deleteSupplier,
   linkSupplierToProduct,
   createTransaction,
   getTransactionHistory,
+  updateTransaction,
+  deleteTransaction,
   getLowStockAlerts,
   getDailySalesTotal
 } from './database_ops.js';
@@ -35,7 +44,7 @@ declare global {
         id: number;
         email: string;
         shop_name: string;
-        folder_hash: string; // Add this
+        folder_hash: string;
       };
     }
   }
@@ -149,6 +158,23 @@ app.put('/api/products/:id', authenticateToken, async (req, res) => {
   }
 });
 
+app.delete('/api/products/:id', authenticateToken, async (req, res) => {
+  try {
+    const productId = parseInt(req.params.id);
+
+    if (isNaN(productId)) {
+      return res.status(400).json({ success: false, error: 'Invalid product ID' });
+    }
+
+    await deleteProduct(req.user!.folder_hash, productId);
+    res.json({ success: true, message: 'Product deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting product:', error);
+    // SQLite might throw foreign key constraint errors
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Inventory management endpoints
 app.post('/api/inventory', authenticateToken, async (req, res) => {
   try {
@@ -172,6 +198,39 @@ app.post('/api/inventory', authenticateToken, async (req, res) => {
     res.status(201).json({ success: true, batchId });
   } catch (error: any) {
     console.error('Error adding inventory batch:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/inventory/:id', authenticateToken, async (req, res) => {
+  try {
+    const batchId = parseInt(req.params.id);
+    const updates = req.body;
+
+    if (isNaN(batchId)) {
+      return res.status(400).json({ success: false, error: 'Invalid inventory batch ID (OrderID)' });
+    }
+
+    await updateInventoryBatch(req.user!.folder_hash, batchId, updates);
+    res.json({ success: true, message: 'Inventory batch updated successfully' });
+  } catch (error: any) {
+    console.error('Error updating inventory batch:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/inventory/:id', authenticateToken, async (req, res) => {
+  try {
+    const batchId = parseInt(req.params.id);
+
+    if (isNaN(batchId)) {
+      return res.status(400).json({ success: false, error: 'Invalid inventory batch ID (OrderID)' });
+    }
+
+    await deleteInventoryBatch(req.user!.folder_hash, batchId);
+    res.json({ success: true, message: 'Inventory batch deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting inventory batch:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -261,6 +320,39 @@ app.get('/api/customers', authenticateToken, async (req, res) => {
   }
 });
 
+app.put('/api/customers/:id', authenticateToken, async (req, res) => {
+  try {
+    const customerId = parseInt(req.params.id);
+    const updates = req.body;
+
+    if (isNaN(customerId)) {
+      return res.status(400).json({ success: false, error: 'Invalid customer ID' });
+    }
+
+    await updateCustomer(req.user!.folder_hash, customerId, updates);
+    res.json({ success: true, message: 'Customer updated successfully' });
+  } catch (error: any) {
+    console.error('Error updating customer:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/customers/:id', authenticateToken, async (req, res) => {
+  try {
+    const customerId = parseInt(req.params.id);
+
+    if (isNaN(customerId)) {
+      return res.status(400).json({ success: false, error: 'Invalid customer ID' });
+    }
+
+    await deleteCustomer(req.user!.folder_hash, customerId);
+    res.json({ success: true, message: 'Customer deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting customer:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Supplier management endpoints
 app.post('/api/suppliers', authenticateToken, async (req, res) => {
   try {
@@ -289,6 +381,39 @@ app.get('/api/suppliers', authenticateToken, async (req, res) => {
     res.json({ success: true, suppliers });
   } catch (error: any) {
     console.error('Error fetching suppliers:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/suppliers/:id', authenticateToken, async (req, res) => {
+  try {
+    const supplierId = parseInt(req.params.id);
+    const updates = req.body;
+
+    if (isNaN(supplierId)) {
+      return res.status(400).json({ success: false, error: 'Invalid supplier ID' });
+    }
+
+    await updateSupplier(req.user!.folder_hash, supplierId, updates);
+    res.json({ success: true, message: 'Supplier updated successfully' });
+  } catch (error: any) {
+    console.error('Error updating supplier:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/suppliers/:id', authenticateToken, async (req, res) => {
+  try {
+    const supplierId = parseInt(req.params.id);
+
+    if (isNaN(supplierId)) {
+      return res.status(400).json({ success: false, error: 'Invalid supplier ID' });
+    }
+
+    await deleteSupplier(req.user!.folder_hash, supplierId);
+    res.json({ success: true, message: 'Supplier deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting supplier:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -349,6 +474,39 @@ app.get('/api/transactions', authenticateToken, async (req, res) => {
     res.json({ success: true, transactions });
   } catch (error: any) {
     console.error('Error fetching transactions:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/transactions/:id', authenticateToken, async (req, res) => {
+  try {
+    const transactionId = parseInt(req.params.id);
+    const updates = req.body;
+
+    if (isNaN(transactionId)) {
+      return res.status(400).json({ success: false, error: 'Invalid transaction ID' });
+    }
+
+    await updateTransaction(req.user!.folder_hash, transactionId, updates);
+    res.json({ success: true, message: 'Transaction updated successfully' });
+  } catch (error: any) {
+    console.error('Error updating transaction:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/transactions/:id', authenticateToken, async (req, res) => {
+  try {
+    const transactionId = parseInt(req.params.id);
+
+    if (isNaN(transactionId)) {
+      return res.status(400).json({ success: false, error: 'Invalid transaction ID' });
+    }
+
+    await deleteTransaction(req.user!.folder_hash, transactionId);
+    res.json({ success: true, message: 'Transaction deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting transaction:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
