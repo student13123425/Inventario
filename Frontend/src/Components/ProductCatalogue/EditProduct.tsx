@@ -17,6 +17,7 @@ const Container = styled.div`
   background-color: #f9fafb;
   padding: 2rem;
   font-family: 'Inter', sans-serif;
+  overflow: hidden;
 `
 
 const Header = styled.div`
@@ -60,6 +61,10 @@ const Content = styled.div`
   border: 1px solid #f3f4f6;
   padding: 2.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 4rem - 2.5rem - 2.5rem); /* Account for padding and margins */
+  max-height: 800px;
 `
 
 const Title = styled.h1`
@@ -67,18 +72,49 @@ const Title = styled.h1`
   font-weight: 800;
   color: #111827;
   margin-bottom: 2rem;
+  flex-shrink: 0;
+`
+
+const FormContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 `
 
 const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
 `
 
 const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  flex-shrink: 0;
 `
 
 const Label = styled.label`
@@ -124,9 +160,10 @@ const ButtonGroup = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1rem;
+  margin-top: auto;
   padding-top: 2rem;
   border-top: 1px solid #f3f4f6;
+  flex-shrink: 0;
 `
 
 const LeftButtonGroup = styled.div`
@@ -227,6 +264,7 @@ const SaveIndicator = styled.div<{ $isVisible: boolean }>`
   gap: 0.5rem;
   max-width: fit-content;
   margin-top: 1rem;
+  flex-shrink: 0;
 `
 
 const ErrorIndicator = styled.div<{ $isVisible: boolean }>`
@@ -242,6 +280,7 @@ const ErrorIndicator = styled.div<{ $isVisible: boolean }>`
   max-width: fit-content;
   margin-top: 1rem;
   border: 1px solid #fecaca;
+  flex-shrink: 0;
 `
 
 const BackIcon = () => <TbChevronLeft size={16} color="#4f46e5" />
@@ -374,65 +413,67 @@ export default function EditProduct(props: EditProductProps) {
         <Content>
           <Title>Edit Product</Title>
           
-          <Form onSubmit={handleSubmit}>
-            <FormGroup>
-              <Label htmlFor="product-name">Product Name <Required>*</Required></Label>
-              <Input
-                id="product-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                hasError={!!errors.name}
-              />
-              {hasSubmitted && errors.name && <ErrorMessage><ErrorIcon />{errors.name}</ErrorMessage>}
-            </FormGroup>
+          <FormContainer>
+            <Form onSubmit={handleSubmit}>
+              <FormGroup>
+                <Label htmlFor="product-name">Product Name <Required>*</Required></Label>
+                <Input
+                  id="product-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  hasError={!!errors.name}
+                />
+                {hasSubmitted && errors.name && <ErrorMessage><ErrorIcon />{errors.name}</ErrorMessage>}
+              </FormGroup>
 
-            <FormGroup>
-              <Label htmlFor="product-price">Price <Required>*</Required></Label>
-              <Input
-                id="product-price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                hasError={!!errors.price}
-              />
-              {hasSubmitted && errors.price && <ErrorMessage><ErrorIcon />{errors.price}</ErrorMessage>}
-            </FormGroup>
+              <FormGroup>
+                <Label htmlFor="product-price">Price <Required>*</Required></Label>
+                <Input
+                  id="product-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  hasError={!!errors.price}
+                />
+                {hasSubmitted && errors.price && <ErrorMessage><ErrorIcon />{errors.price}</ErrorMessage>}
+              </FormGroup>
 
-            <FormGroup>
-              <Label htmlFor="product-barcode">Barcode <Required>*</Required></Label>
-              <Input
-                id="product-barcode"
-                type="text"
-                value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
-                hasError={!!errors.barcode}
-              />
-              {hasSubmitted && errors.barcode && <ErrorMessage><ErrorIcon />{errors.barcode}</ErrorMessage>}
-            </FormGroup>
+              <FormGroup>
+                <Label htmlFor="product-barcode">Barcode <Required>*</Required></Label>
+                <Input
+                  id="product-barcode"
+                  type="text"
+                  value={barcode}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  hasError={!!errors.barcode}
+                />
+                {hasSubmitted && errors.barcode && <ErrorMessage><ErrorIcon />{errors.barcode}</ErrorMessage>}
+              </FormGroup>
 
-            <FormGroup>
-              <Label htmlFor="product-origin">Nation of Origin</Label>
-              <Input
-                id="product-origin"
-                type="text"
-                value={origin}
-                onChange={(e) => setOrigin(e.target.value)}
-                placeholder="e.g. USA"
-              />
-            </FormGroup>
+              <FormGroup>
+                <Label htmlFor="product-origin">Nation of Origin</Label>
+                <Input
+                  id="product-origin"
+                  type="text"
+                  value={origin}
+                  onChange={(e) => setOrigin(e.target.value)}
+                  placeholder="e.g. USA"
+                />
+              </FormGroup>
 
-            <FormGroup>
-              <Label htmlFor="product-exp">Expiration Date</Label>
-              <Input
-                id="product-exp"
-                type="date"
-                value={expDate}
-                onChange={(e) => setExpDate(e.target.value)}
-              />
-            </FormGroup>
+              <FormGroup>
+                <Label htmlFor="product-exp">Expiration Date</Label>
+                <Input
+                  id="product-exp"
+                  type="date"
+                  value={expDate}
+                  onChange={(e) => setExpDate(e.target.value)}
+                />
+              </FormGroup>
+            </Form>
 
             <ButtonGroup>
               <LeftButtonGroup>
@@ -443,13 +484,17 @@ export default function EditProduct(props: EditProductProps) {
               </LeftButtonGroup>
               <RightButtonGroup>
                 <CancelButton type="button" onClick={handleCancel}>Cancel</CancelButton>
-                <SubmitButton type="submit" disabled={!hasChanges()}>
+                <SubmitButton 
+                  type="submit" 
+                  disabled={!hasChanges()}
+                  onClick={handleSubmit}
+                >
                   <SaveIcon />
                   Save Changes
                 </SubmitButton>
               </RightButtonGroup>
             </ButtonGroup>
-          </Form>
+          </FormContainer>
 
           <SaveIndicator $isVisible={showSaveIndicator}>
             <CheckIcon /> Changes saved successfully
