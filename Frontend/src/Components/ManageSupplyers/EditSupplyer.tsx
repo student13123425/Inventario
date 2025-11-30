@@ -82,6 +82,7 @@ const ColumnsContainer = styled.div`
   gap: 2rem;
   flex: 1;
   overflow: hidden;
+  margin-bottom: 2rem;
 `
 
 const LeftColumn = styled.div`
@@ -191,10 +192,10 @@ const ButtonGroup = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: auto;
   padding-top: 2rem;
   border-top: 1px solid #f3f4f6;
   flex-shrink: 0;
+  width: 100%;
 `
 
 const LeftButtonGroup = styled.div`
@@ -573,39 +574,7 @@ export default function EditSupplier(props: EditSupplierProps) {
                     )}
                   </FormGroup>
                 </Form>
-
-                <ButtonGroup>
-                  <LeftButtonGroup>
-                    <DeleteButton type="button" onClick={handleDeleteClick}>
-                      <DeleteIcon />
-                      Delete Supplier
-                    </DeleteButton>
-                  </LeftButtonGroup>
-                  <RightButtonGroup>
-                    <CancelButton type="button" onClick={handleCancel}>
-                      Cancel
-                    </CancelButton>
-                    <SubmitButton 
-                      type="submit" 
-                      disabled={!hasChanges()}
-                      onClick={handleSubmit}
-                    >
-                      <SaveIcon />
-                      Save Changes
-                    </SubmitButton>
-                  </RightButtonGroup>
-                </ButtonGroup>
               </FormContainer>
-
-              <SaveIndicator $isVisible={showSaveIndicator}>
-                <CheckIcon />
-                Changes saved successfully
-              </SaveIndicator>
-
-              <ErrorIndicator $isVisible={showErrorIndicator}>
-                <ErrorIcon />
-                Please fix validation errors to save changes
-              </ErrorIndicator>
             </LeftColumn>
 
             {/* Right Column - Product Linker Component */}
@@ -617,6 +586,39 @@ export default function EditSupplier(props: EditSupplierProps) {
               />
             </RightColumn>
           </ColumnsContainer>
+
+          {/* Buttons positioned under both columns */}
+          <ButtonGroup>
+            <LeftButtonGroup>
+              <DeleteButton type="button" onClick={handleDeleteClick}>
+                <DeleteIcon />
+                Delete Supplier
+              </DeleteButton>
+            </LeftButtonGroup>
+            <RightButtonGroup>
+              <CancelButton type="button" onClick={handleCancel}>
+                Cancel
+              </CancelButton>
+              <SubmitButton 
+                type="submit" 
+                disabled={!hasChanges()}
+                onClick={handleSubmit}
+              >
+                <SaveIcon />
+                Save Changes
+              </SubmitButton>
+            </RightButtonGroup>
+          </ButtonGroup>
+
+          <SaveIndicator $isVisible={showSaveIndicator}>
+            <CheckIcon />
+            Changes saved successfully
+          </SaveIndicator>
+
+          <ErrorIndicator $isVisible={showErrorIndicator}>
+            <ErrorIcon />
+            Please fix validation errors to save changes
+          </ErrorIndicator>
         </Content>
       </Container>
       <ConfirmModal
@@ -643,4 +645,4 @@ export default function EditSupplier(props: EditSupplierProps) {
       />
     </>
   )
-} 
+}
