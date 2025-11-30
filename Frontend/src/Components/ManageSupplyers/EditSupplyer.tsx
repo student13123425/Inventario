@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import type { SupplierResponse } from '../../script/objects'
+import { TbAlertCircle, TbCheck, TbChevronLeft } from 'react-icons/tb'
 
 interface EditSupplierProps {
   item: SupplierResponse
@@ -152,23 +153,17 @@ const ErrorIndicator = styled.div<{ $isVisible: boolean }>`
   border: 1px solid #fecaca;
 `
 
-const BackIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M10 12L6 8L10 4" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-)
+export const BackIcon = () => (
+  <TbChevronLeft size={16} color="#4f46e5" />
+);
 
-const CheckIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M13 4L6 11L3 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-)
+export const CheckIcon = () => (
+  <TbCheck size={16} color="currentColor" />
+);
 
-const ErrorIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M8 6V8M8 10H8.01M15 8C15 11.866 11.866 15 8 15C4.13401 15 1 11.866 1 8C1 4.13401 4.13401 1 8 1C11.866 1 15 4.13401 15 8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-)
+export const ErrorIcon = () => (
+  <TbAlertCircle size={16} color="currentColor" />
+);
 
 export default function EditSupplier(props: EditSupplierProps) {
   const [Name, setName] = useState(props.item.Name);
