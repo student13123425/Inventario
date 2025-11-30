@@ -1,3 +1,5 @@
+Here's the updated documentation with the new relationship functions added, keeping the exact same format:
+
 # API Functions Quick Reference
 
 ## Authentication
@@ -55,6 +57,17 @@
 |----------|-------------|----------|
 | `fetchLowStockAlerts()` | Object with `success` and array of low stock alerts | `GET /api/analytics/low-stock?threshold={threshold}` |
 | `fetchDailySales()` | Object with `success` and `dailySales` number | `GET /api/analytics/daily-sales?date={date}` |
+
+## Relationship Management
+| Function | What It Gets | Endpoint |
+|----------|-------------|----------|
+| `fetchSupplierProducts()` | Object with `success` and array of supplier products | `GET /api/suppliers/{id}/products` |
+| `fetchProductSuppliers()` | Object with `success` and array of product suppliers | `GET /api/products/{id}/suppliers` |
+| `fetchAllSupplierLinks()` | Object with `success` and array of supplier links | `GET /api/suppliers-links` |
+| `updateSupplierPricing()` | Object with `success` and optional message | `PUT /api/suppliers/{supplierId}/products/{productId}/pricing` |
+| `fetchProductInventory()` | Object with `success` and array of product inventory | `GET /api/products/{id}/inventory` |
+| `fetchCustomerTransactions()` | Object with `success` and array of customer transactions | `GET /api/customers/{id}/transactions` |
+| `fetchSupplierTransactions()` | Object with `success` and array of supplier transactions | `GET /api/suppliers/{id}/transactions` |
 
 ## Response Pattern Summary
 - **Create operations** (`createProduct`, `createCustomer`, etc.): Return `{ batchId: number }`
@@ -545,6 +558,119 @@ Retrieves daily sales total for a specific date.
 
 **Throws:** Error with "Failed to fetch daily sales"
 
+## Relationship Management
+
+### fetchSupplierProducts
+Retrieves all products supplied by a specific supplier, including pricing information.
+
+**Function:** `fetchSupplierProducts(token, supplierId)`
+**Endpoint:** `GET /api/suppliers/{id}/products`
+**Authentication:** Required
+
+**Parameters:**
+- `token`: JWT authentication token
+- `supplierId`: Supplier ID to fetch products for (number, required)
+
+**Returns:** Promise that resolves to object with `success` (boolean) and `products` (array of supplier product objects with pricing)
+
+**Throws:** Error with "Failed to fetch supplier products"
+
+### fetchProductSuppliers
+Retrieves all suppliers that provide a specific product, including pricing information.
+
+**Function:** `fetchProductSuppliers(token, productId)`
+**Endpoint:** `GET /api/products/{id}/suppliers`
+**Authentication:** Required
+
+**Parameters:**
+- `token`: JWT authentication token
+- `productId`: Product ID to fetch suppliers for (number, required)
+
+**Returns:** Promise that resolves to object with `success` (boolean) and `suppliers` (array of product supplier objects with pricing)
+
+**Throws:** Error with "Failed to fetch product suppliers"
+
+### fetchAllSupplierLinks
+Retrieves all supplier-product relationships with detailed information.
+
+**Function:** `fetchAllSupplierLinks(token)`
+**Endpoint:** `GET /api/suppliers-links`
+**Authentication:** Required
+
+**Parameters:**
+- `token`: JWT authentication token
+
+**Returns:** Promise that resolves to object with `success` (boolean) and `links` (array of supplier link objects)
+
+**Throws:** Error with "Failed to fetch supplier links"
+
+### updateSupplierPricing
+Updates or creates pricing information for a supplier-product relationship.
+
+**Function:** `updateSupplierPricing(token, supplierId, productId, pricing)`
+**Endpoint:** `PUT /api/suppliers/{supplierId}/products/{productId}/pricing`
+**Authentication:** Required
+
+**Parameters:**
+- `token`: JWT authentication token
+- `supplierId`: Supplier ID (number, required)
+- `productId`: Product ID (number, required)
+- `pricing`: Object containing:
+  - `supplier_price`: Price offered by supplier (number, required)
+  - `supplier_sku`: Supplier's product SKU (string, optional)
+  - `min_order_quantity`: Minimum order quantity (number, optional)
+  - `lead_time_days`: Delivery lead time in days (number, optional)
+  - `is_active`: Whether this supplier-product relationship is active (boolean, optional)
+
+**Returns:** Promise that resolves to object with `success` (boolean) and optional `message` (string)
+
+**Throws:** Error with "Failed to update supplier pricing"
+
+### fetchProductInventory
+Retrieves all inventory batches for a specific product.
+
+**Function:** `fetchProductInventory(token, productId)`
+**Endpoint:** `GET /api/products/{id}/inventory`
+**Authentication:** Required
+
+**Parameters:**
+- `token`: JWT authentication token
+- `productId`: Product ID to fetch inventory for (number, required)
+
+**Returns:** Promise that resolves to object with `success` (boolean) and `inventory` (array of inventory batch objects)
+
+**Throws:** Error with "Failed to fetch product inventory"
+
+### fetchCustomerTransactions
+Retrieves all transactions for a specific customer.
+
+**Function:** `fetchCustomerTransactions(token, customerId)`
+**Endpoint:** `GET /api/customers/{id}/transactions`
+**Authentication:** Required
+
+**Parameters:**
+- `token`: JWT authentication token
+- `customerId`: Customer ID to fetch transactions for (number, required)
+
+**Returns:** Promise that resolves to object with `success` (boolean) and `transactions` (array of transaction objects)
+
+**Throws:** Error with "Failed to fetch customer transactions"
+
+### fetchSupplierTransactions
+Retrieves all transactions for a specific supplier.
+
+**Function:** `fetchSupplierTransactions(token, supplierId)`
+**Endpoint:** `GET /api/suppliers/{id}/transactions`
+**Authentication:** Required
+
+**Parameters:**
+- `token`: JWT authentication token
+- `supplierId`: Supplier ID to fetch transactions for (number, required)
+
+**Returns:** Promise that resolves to object with `success` (boolean) and `transactions` (array of transaction objects)
+
+**Throws:** Error with "Failed to fetch supplier transactions"
+
 ## Type Definitions
 
 ### Authentication Types
@@ -576,6 +702,12 @@ Retrieves daily sales total for a specific date.
 
 ### Analytics Types
 - `LowStockAlert`: Contains low stock product information
+
+### Relationship Types
+- `SupplierProductResponse`: Product data with supplier pricing information
+- `ProductSupplierResponse`: Supplier data with product pricing information
+- `SupplierLinkResponse`: Complete supplier-product relationship data
+- `ProductInventoryResponse`: Inventory batch data with product information
 
 ### Response Types
 - `BatchResponse`: Contains batch ID for created resources
