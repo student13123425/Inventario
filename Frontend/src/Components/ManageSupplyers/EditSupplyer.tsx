@@ -537,8 +537,6 @@ export default function EditSupplier(props: EditSupplierProps) {
           </ErrorIndicator>
         </Content>
       </Container>
-
-      {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={handleDeleteCancel}
@@ -550,8 +548,6 @@ export default function EditSupplier(props: EditSupplierProps) {
         confirmText="Delete Supplier"
         cancelText="Cancel"
       />
-
-      {/* Save Confirmation Modal */}
       <ConfirmModal
         isOpen={isSaveModalOpen}
         onClose={handleSaveCancel}
