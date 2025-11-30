@@ -1,5 +1,5 @@
 import React from 'react'
-import type { SupplierResponse } from '../../script/objects'
+import type { ProductSupplierResponse, SupplierProductResponse, SupplierResponse } from '../../script/objects'
 import styled from 'styled-components'
 import { MdEdit } from 'react-icons/md'
 
@@ -110,7 +110,7 @@ const EmptyField = styled.span`
 `
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-export default function SupplyerItem(props: { item: SupplierResponse, index: number,setEditing:Function}) {
+export default function SupplyerItem(props: { item: SupplierResponse, index: number,setEditing:Function,products:SupplierProductResponse[]}) {
   const displayIndex = props.index + 1; // Convert to 1-based indexing for display
   return (
     <Container>

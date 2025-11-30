@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
-import { createSupplier, deleteSupplier, fetchSuppliers, updateSupplier } from '../../script/network';
+import { createSupplier, deleteSupplier, fetchSuppliers, updateSupplier, fetchSupplierProducts } from '../../script/network';
 import { getToken } from '../../script/utils';
-import type { SupplierResponse } from '../../script/objects';
+import type { SupplierResponse, SupplierProductResponse } from '../../script/objects';
 import LoadingComponent from './LoadingComponent';
 import { FaTimesCircle, FaPlus } from 'react-icons/fa';
 import SupplyerItem from '../../Components/ManageSupplyers/SupplyerItem';
@@ -175,14 +175,38 @@ const AddIcon = styled(FaPlus)`
   font-size: 1rem;
 `
 
+// New state type for supplier products
+interface SupplierWithProducts extends SupplierResponse {
+  products: SupplierProductResponse[];
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 async function getSupplyers(setSuppliers: Function, setError: Function) {
   try {
     const token = await getToken();
     if (token) {
       const out = await fetchSuppliers(token);
-      if (out.success == true)
-        setSuppliers(out.suppliers);
+      if (out.success == true) {
+        // Fetch products for each supplier
+        const suppliersWithProducts = await Promise.all(
+          out.suppliers.map(async (supplier: SupplierResponse) => {
+            try {
+              const productsOut = await fetchSupplierProducts(token, supplier.ID);
+              return {
+                ...supplier,
+                products: productsOut.success ? productsOut.products : []
+              };
+            } catch (e) {
+              console.error(`Failed to fetch products for supplier ${supplier.ID}:`, e);
+              return {
+                ...supplier,
+                products: []
+              };
+            }
+          })
+        );
+        setSuppliers(suppliersWithProducts);
+      }
       else
         setError("Failed getting suppliers")
     }
@@ -193,16 +217,19 @@ async function getSupplyers(setSuppliers: Function, setError: Function) {
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export default function ManageSupplyers(props: { setError: Function }) {
-  const [Supplyers, setSuppliers] = useState<SupplierResponse[] | null>(null);
+  const [Supplyers, setSuppliers] = useState<SupplierWithProducts[] | null>(null);
   const [IsAddingSupplyers,setIsAddingSupplyers]=useState<boolean>(false);
-  const [IsEditingSupplyer,setIsEditingSupplyer]=useState<null|SupplierResponse>(null);
+  const [IsEditingSupplyer,setIsEditingSupplyer]=useState<null|SupplierWithProducts>(null);
+  
   useEffect(() => {
     getSupplyers(setSuppliers, props.setError)
   }, [props.setError])
+  
   console.log(Supplyers);
   
   if (Supplyers === null)
     return <LoadingComponent msg='Loading Suppliers...' />
+  
   if(IsAddingSupplyers)
     return <AddSupplyer onBack={()=>setIsAddingSupplyers(false)} onClose={()=>setIsAddingSupplyers(false)} onSubmit={async (supplyer: { Name: string; phone_number?: string; email?: string })=>{
       const token=await getToken();
@@ -212,6 +239,7 @@ export default function ManageSupplyers(props: { setError: Function }) {
       }
       setIsAddingSupplyers(false);
     }}/>
+  
   if(IsEditingSupplyer!==null)
     return <EditSupplyer onDelete={async ()=>{
       const token=await getToken();
@@ -230,6 +258,7 @@ export default function ManageSupplyers(props: { setError: Function }) {
         await getSupplyers(setSuppliers, props.setError)
       }
     }} item={IsEditingSupplyer}/>
+  
   return (
     <Container>
       <ContainerInner>
@@ -243,7 +272,15 @@ export default function ManageSupplyers(props: { setError: Function }) {
                 <SubText>Get started by adding your first supplier</SubText>
               </EmptyList>
             ) : <Hide />}
-            {Supplyers.map((it, i) => <SupplyerItem setEditing={setIsEditingSupplyer} index={i} item={it} key={i} />)}
+            {Supplyers.map((it, i) => (
+              <SupplyerItem 
+                setEditing={setIsEditingSupplyer} 
+                index={i} 
+                item={it} 
+                key={i} 
+                products={it.products}
+              />
+            ))}
           </Contents>
           <BtnContainer>
             <Button onClick={()=>setIsAddingSupplyers(true)}>
