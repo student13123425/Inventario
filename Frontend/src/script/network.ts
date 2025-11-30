@@ -33,7 +33,10 @@ function getHeaders(token: string) {
   };
 }
 
+// ==========================================
 // Auth functions
+// ==========================================
+
 export function login(payload: LoginPayload): Promise<string> {
   return axiosInstance.post<AuthResponse>('/api/login', payload)
     .then(response => {
@@ -70,7 +73,10 @@ export function register(payload: RegisterPayload): Promise<string> {
     });
 }
 
+// ==========================================
 // Products
+// ==========================================
+
 export function createProduct(token: string, payload: ProductPayload): Promise<BatchResponse> {
   return axiosInstance.post<BatchResponse>('/api/products', payload, { headers: getHeaders(token) })
     .then(response => response.data)
@@ -103,12 +109,39 @@ export function updateProduct(token: string, id: number, payload: Partial<Produc
     });
 }
 
+export function deleteProduct(token: string, id: number): Promise<SuccessResponse> {
+  return axiosInstance.delete<SuccessResponse>(`/api/products/${id}`, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to delete product');
+    });
+}
+
+// ==========================================
 // Inventory
+// ==========================================
+
 export function addInventoryBatch(token: string, payload: InventoryBatchPayload): Promise<BatchResponse> {
   return axiosInstance.post<BatchResponse>('/api/inventory', payload, { headers: getHeaders(token) })
     .then(response => response.data)
     .catch(error => {
       throw new Error('Failed to add inventory batch');
+    });
+}
+
+export function updateInventoryBatch(token: string, orderId: number, payload: Partial<InventoryBatchPayload>): Promise<SuccessResponse> {
+  return axiosInstance.put<SuccessResponse>(`/api/inventory/${orderId}`, payload, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to update inventory batch');
+    });
+}
+
+export function deleteInventoryBatch(token: string, orderId: number): Promise<SuccessResponse> {
+  return axiosInstance.delete<SuccessResponse>(`/api/inventory/${orderId}`, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to delete inventory batch');
     });
 }
 
@@ -128,7 +161,10 @@ export function reduceInventory(token: string, payload: ReduceInventoryPayload):
     });
 }
 
+// ==========================================
 // Customers
+// ==========================================
+
 export function createCustomer(token: string, payload: CustomerPayload): Promise<BatchResponse> {
   return axiosInstance.post<BatchResponse>('/api/customers', payload, { headers: getHeaders(token) })
     .then(response => response.data)
@@ -145,7 +181,26 @@ export function fetchCustomers(token: string): Promise<{ success: boolean; custo
     });
 }
 
+export function updateCustomer(token: string, id: number, payload: Partial<CustomerPayload>): Promise<SuccessResponse> {
+  return axiosInstance.put<SuccessResponse>(`/api/customers/${id}`, payload, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to update customer');
+    });
+}
+
+export function deleteCustomer(token: string, id: number): Promise<SuccessResponse> {
+  return axiosInstance.delete<SuccessResponse>(`/api/customers/${id}`, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to delete customer');
+    });
+}
+
+// ==========================================
 // Suppliers
+// ==========================================
+
 export function createSupplier(token: string, payload: SupplierPayload): Promise<BatchResponse> {
   return axiosInstance.post<BatchResponse>('/api/suppliers', payload, { headers: getHeaders(token) })
     .then(response => response.data)
@@ -162,6 +217,22 @@ export function fetchSuppliers(token: string): Promise<{ success: boolean; suppl
     });
 }
 
+export function updateSupplier(token: string, id: number, payload: Partial<SupplierPayload>): Promise<SuccessResponse> {
+  return axiosInstance.put<SuccessResponse>(`/api/suppliers/${id}`, payload, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to update supplier');
+    });
+}
+
+export function deleteSupplier(token: string, id: number): Promise<SuccessResponse> {
+  return axiosInstance.delete<SuccessResponse>(`/api/suppliers/${id}`, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to delete supplier');
+    });
+}
+
 export function linkSupplierProduct(token: string, payload: LinkSupplierPayload): Promise<SuccessResponse> {
   return axiosInstance.post<SuccessResponse>('/api/suppliers/link', payload, { headers: getHeaders(token) })
     .then(response => response.data)
@@ -170,7 +241,10 @@ export function linkSupplierProduct(token: string, payload: LinkSupplierPayload)
     });
 }
 
+// ==========================================
 // Transactions
+// ==========================================
+
 export function createTransaction(token: string, payload: TransactionPayload): Promise<BatchResponse> {
   return axiosInstance.post<BatchResponse>('/api/transactions', payload, { headers: getHeaders(token) })
     .then(response => response.data)
@@ -188,7 +262,26 @@ export function fetchTransactions(token: string, type?: 'Purchase' | 'Sale'): Pr
     });
 }
 
-// Analytics
+export function updateTransaction(token: string, id: number, payload: Partial<TransactionPayload>): Promise<SuccessResponse> {
+  return axiosInstance.put<SuccessResponse>(`/api/transactions/${id}`, payload, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to update transaction');
+    });
+}
+
+export function deleteTransaction(token: string, id: number): Promise<SuccessResponse> {
+  return axiosInstance.delete<SuccessResponse>(`/api/transactions/${id}`, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to delete transaction');
+    });
+}
+
+// ==========================================
+// Analytics & Utility
+// ==========================================
+
 export function fetchLowStockAlerts(token: string, threshold: number = 10): Promise<{ success: boolean; lowStockAlerts: LowStockAlert[] }> {
   return axiosInstance.get<{ success: boolean; lowStockAlerts: LowStockAlert[] }>(`/api/analytics/low-stock?threshold=${threshold}`, { headers: getHeaders(token) })
     .then(response => response.data)
