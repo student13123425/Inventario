@@ -117,3 +117,53 @@ export interface ErrorResponse {
   success: boolean;
   error: string;
 }
+
+// Add these to your existing types in objects.ts
+
+export interface SupplierProductResponse {
+  ID: number;
+  name: string;
+  price: number;
+  nation_of_origin?: string;
+  product_bar_code: string;
+  expiration_date?: number;
+  supplier_price?: number;
+  supplier_sku?: string;
+  min_order_quantity?: number;
+  lead_time_days?: number;
+  is_active?: boolean;
+}
+
+export interface ProductSupplierResponse {
+  ID: number;
+  Name: string;
+  phone_number?: string;
+  email?: string;
+  supplier_price?: number;
+  supplier_sku?: string;
+  min_order_quantity?: number;
+  lead_time_days?: number;
+  is_active?: boolean;
+}
+
+export interface SupplierLinkResponse {
+  supplier_id: number;
+  supplier_name: string;
+  product_id: number;
+  product_name: string;
+  supplier_price?: number;
+  supplier_sku?: string;
+  min_order_quantity?: number;
+  lead_time_days?: number;
+  is_active?: boolean;
+}
+
+export interface ProductInventoryResponse {
+  OrderID?: number;
+  ProductID: number;
+  purchase_price: number;
+  sale_price: number;
+  quantity: number;
+  expiration_date_per_batch?: string;
+  product_name: string;
+}

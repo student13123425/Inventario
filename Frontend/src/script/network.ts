@@ -18,6 +18,9 @@ import type {
   StockLevelResponse,
   BatchResponse,
   SuccessResponse,
+  ProductSupplierResponse,
+  SupplierProductResponse,
+  SupplierLinkResponse,
 } from './objects';
 
 const base_url: string = 'http://localhost:3000';
@@ -316,5 +319,91 @@ export function checkToken(token: string): Promise<{
         throw new Error(data.error || 'Token validation failed');
       }
       throw new Error('Token validation failed');
+    });
+}
+
+// Add these to your existing imports from './objects'
+// You'll need to add these types to your objects fil
+
+// ==========================================
+// Supplier-Product Relationships
+// ==========================================
+
+export function fetchSupplierProducts(token: string, supplierId: number): Promise<{ success: boolean; products: SupplierProductResponse[] }> {
+  return axiosInstance.get<{ success: boolean; products: SupplierProductResponse[] }>(`/api/suppliers/${supplierId}/products`, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to fetch supplier products');
+    });
+}
+
+export function fetchProductSuppliers(token: string, productId: number): Promise<{ success: boolean; suppliers: ProductSupplierResponse[] }> {
+  return axiosInstance.get<{ success: boolean; suppliers: ProductSupplierResponse[] }>(`/api/products/${productId}/suppliers`, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to fetch product suppliers');
+    });
+}
+
+export function fetchAllSupplierLinks(token: string): Promise<{ success: boolean; links: SupplierLinkResponse[] }> {
+  return axiosInstance.get<{ success: boolean; links: SupplierLinkResponse[] }>('/api/suppliers-links', { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to fetch supplier links');
+    });
+}
+
+export function updateSupplierPricing(
+  token: string, 
+  supplierId: number, 
+  productId: number, 
+  pricing: {
+    supplier_price: number;
+    supplier_sku?: string;
+    min_order_quantity?: number;
+    lead_time_days?: number;
+    is_active?: boolean;
+  }
+): Promise<SuccessResponse> {
+  return axiosInstance.put<SuccessResponse>(`/api/suppliers/${supplierId}/products/${productId}/pricing`, pricing, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to update supplier pricing');
+    });
+}
+
+// ==========================================
+// Product-Inventory Relationships
+// ==========================================
+
+export function fetchProductInventory(token: string, productId: number): Promise<{ success: boolean; inventory: ProductInventoryResponse[] }> {
+  return axiosInstance.get<{ success: boolean; inventory: ProductInventoryResponse[] }>(`/api/products/${productId}/inventory`, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to fetch product inventory');
+    });
+}
+
+// ==========================================
+// Customer-Transaction Relationships
+// ==========================================
+
+export function fetchCustomerTransactions(token: string, customerId: number): Promise<{ success: boolean; transactions: TransactionResponse[] }> {
+  return axiosInstance.get<{ success: boolean; transactions: TransactionResponse[] }>(`/api/customers/${customerId}/transactions`, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to fetch customer transactions');
+    });
+}
+
+// ==========================================
+// Supplier-Transaction Relationships
+// ==========================================
+
+export function fetchSupplierTransactions(token: string, supplierId: number): Promise<{ success: boolean; transactions: TransactionResponse[] }> {
+  return axiosInstance.get<{ success: boolean; transactions: TransactionResponse[] }>(`/api/suppliers/${supplierId}/transactions`, { headers: getHeaders(token) })
+    .then(response => response.data)
+    .catch(error => {
+      throw new Error('Failed to fetch supplier transactions');
     });
 }

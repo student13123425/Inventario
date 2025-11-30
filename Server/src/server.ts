@@ -28,7 +28,14 @@ import {
   updateTransaction,
   deleteTransaction,
   getLowStockAlerts,
-  getDailySalesTotal
+  getDailySalesTotal,
+  getTransactionsBySupplier,
+  getTransactionsByCustomer,
+  getInventoryByProduct,
+  getSuppliersByProduct,
+  getAllSupplierProductLinks,
+  getProductsBySupplier,
+  updateSupplierProductPricing
 } from './database_ops.js';
 
 const app = express();
@@ -544,6 +551,122 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
+});
+
+// Supplier-Product Relationship endpoints
+app.get('/api/suppliers/:id/products', authenticateToken, async (req, res) => {
+  try {
+    const supplierId = parseInt(req.params.id);
+    
+    if (isNaN(supplierId)) {
+      return res.status(400).json({ success: false, error: 'Invalid supplier ID' });
+    }
+
+    const products = await getProductsBySupplier(req.user!.folder_hash, supplierId);
+    res.json({ success: true, products });
+  } catch (error: any) {
+    console.error('Error fetching supplier products:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/products/:id/suppliers', authenticateToken, async (req, res) => {
+  try {
+    const productId = parseInt(req.params.id);
+    
+    if (isNaN(productId)) {
+      return res.status(400).json({ success: false, error: 'Invalid product ID' });
+    }
+
+    const suppliers = await getSuppliersByProduct(req.user!.folder_hash, productId);
+    res.json({ success: true, suppliers });
+  } catch (error: any) {
+    console.error('Error fetching product suppliers:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/suppliers-links', authenticateToken, async (req, res) => {
+  try {
+    const links = await getAllSupplierProductLinks(req.user!.folder_hash);
+    res.json({ success: true, links });
+  } catch (error: any) {
+    console.error('Error fetching supplier product links:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/suppliers/:supplierId/products/:productId/pricing', authenticateToken, async (req, res) => {
+  try {
+    const supplierId = parseInt(req.params.supplierId);
+    const productId = parseInt(req.params.productId);
+    const pricing = req.body;
+
+    if (isNaN(supplierId) || isNaN(productId)) {
+      return res.status(400).json({ success: false, error: 'Invalid supplier ID or product ID' });
+    }
+
+    if (!pricing.supplier_price) {
+      return res.status(400).json({ success: false, error: 'Supplier price is required' });
+    }
+
+    await updateSupplierProductPricing(req.user!.folder_hash, supplierId, productId, pricing);
+    res.json({ success: true, message: 'Supplier pricing updated successfully' });
+  } catch (error: any) {
+    console.error('Error updating supplier pricing:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Product-Inventory endpoints
+app.get('/api/products/:id/inventory', authenticateToken, async (req, res) => {
+  try {
+    const productId = parseInt(req.params.id);
+    
+    if (isNaN(productId)) {
+      return res.status(400).json({ success: false, error: 'Invalid product ID' });
+    }
+
+    const inventory = await getInventoryByProduct(req.user!.folder_hash, productId);
+    res.json({ success: true, inventory });
+  } catch (error: any) {
+    console.error('Error fetching product inventory:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Customer-Transaction endpoints
+app.get('/api/customers/:id/transactions', authenticateToken, async (req, res) => {
+  try {
+    const customerId = parseInt(req.params.id);
+    
+    if (isNaN(customerId)) {
+      return res.status(400).json({ success: false, error: 'Invalid customer ID' });
+    }
+
+    const transactions = await getTransactionsByCustomer(req.user!.folder_hash, customerId);
+    res.json({ success: true, transactions });
+  } catch (error: any) {
+    console.error('Error fetching customer transactions:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Supplier-Transaction endpoints
+app.get('/api/suppliers/:id/transactions', authenticateToken, async (req, res) => {
+  try {
+    const supplierId = parseInt(req.params.id);
+    
+    if (isNaN(supplierId)) {
+      return res.status(400).json({ success: false, error: 'Invalid supplier ID' });
+    }
+
+    const transactions = await getTransactionsBySupplier(req.user!.folder_hash, supplierId);
+    res.json({ success: true, transactions });
+  } catch (error: any) {
+    console.error('Error fetching supplier transactions:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 export default app;

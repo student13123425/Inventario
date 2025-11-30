@@ -441,3 +441,175 @@ export async function getDailySalesTotal(folderHash: string, date: string): Prom
         });
     });
 }
+
+// Get all products for a specific supplier
+export async function getProductsBySupplier(folderHash: string, supplierId: number): Promise<any[]> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT 
+        p.*,
+        spp.supplier_price,
+        spp.supplier_sku,
+        spp.min_order_quantity,
+        spp.lead_time_days,
+        spp.is_active
+      FROM products p
+      INNER JOIN supplier_products sp ON p.ID = sp.ProductID
+      LEFT JOIN supplier_product_pricing spp ON sp.SupplierID = spp.SupplierID AND sp.ProductID = spp.ProductID
+      WHERE sp.SupplierID = ?
+    `;
+    db.all(query, [supplierId], (err, rows) => {
+      db.close();
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
+// Get all suppliers for a specific product
+export async function getSuppliersByProduct(folderHash: string, productId: number): Promise<any[]> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT 
+        s.*,
+        spp.supplier_price,
+        spp.supplier_sku,
+        spp.min_order_quantity,
+        spp.lead_time_days,
+        spp.is_active
+      FROM suppliers s
+      INNER JOIN supplier_products sp ON s.ID = sp.SupplierID
+      LEFT JOIN supplier_product_pricing spp ON sp.SupplierID = spp.SupplierID AND sp.ProductID = spp.ProductID
+      WHERE sp.ProductID = ?
+    `;
+    db.all(query, [productId], (err, rows) => {
+      db.close();
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
+// Get all supplier-product relationships with details
+export async function getAllSupplierProductLinks(folderHash: string): Promise<any[]> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT 
+        s.ID as supplier_id,
+        s.Name as supplier_name,
+        p.ID as product_id,
+        p.name as product_name,
+        spp.supplier_price,
+        spp.supplier_sku,
+        spp.min_order_quantity,
+        spp.lead_time_days,
+        spp.is_active
+      FROM supplier_products sp
+      INNER JOIN suppliers s ON sp.SupplierID = s.ID
+      INNER JOIN products p ON sp.ProductID = p.ID
+      LEFT JOIN supplier_product_pricing spp ON sp.SupplierID = spp.SupplierID AND sp.ProductID = spp.ProductID
+    `;
+    db.all(query, [], (err, rows) => {
+      db.close();
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
+// Update supplier product pricing
+export async function updateSupplierProductPricing(
+  folderHash: string, 
+  supplierId: number, 
+  productId: number, 
+  pricing: {
+    supplier_price: number;
+    supplier_sku?: string;
+    min_order_quantity?: number;
+    lead_time_days?: number;
+    is_active?: boolean;
+  }
+): Promise<void> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    db.run(
+      `INSERT OR REPLACE INTO supplier_product_pricing 
+       (SupplierID, ProductID, supplier_price, supplier_sku, min_order_quantity, lead_time_days, is_active, last_updated)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [
+        supplierId, 
+        productId, 
+        pricing.supplier_price, 
+        pricing.supplier_sku,
+        pricing.min_order_quantity,
+        pricing.lead_time_days,
+        pricing.is_active
+      ],
+      (err) => {
+        db.close();
+        if (err) reject(err);
+        else resolve();
+      }
+    );
+  });
+}
+
+// Get inventory batches for a specific product
+export async function getInventoryByProduct(folderHash: string, productId: number): Promise<any[]> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT i.*, p.name as product_name
+      FROM inventory i
+      INNER JOIN products p ON i.ProductID = p.ID
+      WHERE i.ProductID = ?
+      ORDER BY i.OrderID ASC
+    `;
+    db.all(query, [productId], (err, rows) => {
+      db.close();
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
+// Get transactions for a specific customer
+export async function getTransactionsByCustomer(folderHash: string, customerId: number): Promise<any[]> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT t.*, c.name as customer_name
+      FROM Transactions t
+      INNER JOIN customers c ON t.CustomerID = c.ID
+      WHERE t.CustomerID = ?
+      ORDER BY t.TransactionDate DESC
+    `;
+    db.all(query, [customerId], (err, rows) => {
+      db.close();
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
+
+// Get transactions for a specific supplier
+export async function getTransactionsBySupplier(folderHash: string, supplierId: number): Promise<any[]> {
+  const db = await connectToUserDatabase(folderHash);
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT t.*, s.Name as supplier_name
+      FROM Transactions t
+      INNER JOIN suppliers s ON t.SupplierID = s.ID
+      WHERE t.SupplierID = ?
+      ORDER BY t.TransactionDate DESC
+    `;
+    db.all(query, [supplierId], (err, rows) => {
+      db.close();
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}

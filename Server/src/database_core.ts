@@ -145,7 +145,22 @@ export function init_user_data(path: string) {
 
     db.serialize(() => {
         db.run("PRAGMA foreign_keys = ON;");
-
+        db.run(`
+            CREATE TABLE IF NOT EXISTS supplier_product_pricing (
+                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                SupplierID INTEGER NOT NULL,
+                ProductID INTEGER NOT NULL,
+                supplier_price REAL NOT NULL,
+                supplier_sku TEXT,
+                min_order_quantity INTEGER DEFAULT 1,
+                lead_time_days INTEGER DEFAULT 7,
+                is_active BOOLEAN DEFAULT 1,
+                last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (SupplierID) REFERENCES suppliers(ID),
+                FOREIGN KEY (ProductID) REFERENCES products(ID),
+                UNIQUE(SupplierID, ProductID)
+            )
+        `);
         db.run(`
             CREATE TABLE IF NOT EXISTS products (
                 ID INTEGER PRIMARY KEY AUTOINCREMENT,
