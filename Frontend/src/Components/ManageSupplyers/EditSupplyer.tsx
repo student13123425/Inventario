@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
-import type { SupplierResponse } from '../../script/objects'
+import type { SupplierProductResponse, SupplierResponse } from '../../script/objects'
 import { TbAlertCircle, TbCheck, TbChevronLeft, TbTrash } from 'react-icons/tb'
 import ConfirmModal from '../ConfirmModal'
+import ProductLinkerCompoent from "./ProductLinkerCompoent"
 
 interface EditSupplierProps {
   item: SupplierResponse
   onBack: () => void
   onUpdate: (updatedSupplier: Partial<SupplierResponse>) => void
   onDelete: () => void
+  products: SupplierProductResponse[]
 }
 
 const Container = styled.div`
@@ -73,6 +75,29 @@ const Title = styled.h1`
   color: #111827;
   margin-bottom: 2rem;
   flex-shrink: 0;
+`
+
+const ColumnsContainer = styled.div`
+  display: flex;
+  gap: 2rem;
+  flex: 1;
+  overflow: hidden;
+`
+
+const LeftColumn = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`
+
+const RightColumn = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid #e5e7eb;
+  padding-left: 2rem;
 `
 
 const FormContainer = styled.div`
@@ -473,111 +498,125 @@ export default function EditSupplier(props: EditSupplierProps) {
         <Content>
           <Title>Edit Supplier</Title>
           
-          <FormContainer>
-            <Form onSubmit={handleSubmit}>
-              <FormGroup>
-                <Label htmlFor="supplier-name">
-                  Supplier Name <Required>*</Required>
-                </Label>
-                <Input
-                  id="supplier-name"
-                  type="text"
-                  value={Name}
-                  onChange={handleNameChange}
-                  placeholder="Enter supplier name (minimum 4 characters)"
-                  hasError={!!errors.Name}
-                />
-                <InputHelpText>
-                  Must be at least 4 characters long
-                </InputHelpText>
-                {hasSubmitted && errors.Name && (
-                  <ErrorMessage>
-                    <ErrorIcon />
-                    {errors.Name}
-                  </ErrorMessage>
-                )}
-              </FormGroup>
+          <ColumnsContainer>
+            {/* Left Column - Form Inputs */}
+            <LeftColumn>
+              <FormContainer>
+                <Form onSubmit={handleSubmit}>
+                  <FormGroup>
+                    <Label htmlFor="supplier-name">
+                      Supplier Name <Required>*</Required>
+                    </Label>
+                    <Input
+                      id="supplier-name"
+                      type="text"
+                      value={Name}
+                      onChange={handleNameChange}
+                      placeholder="Enter supplier name (minimum 4 characters)"
+                      hasError={!!errors.Name}
+                    />
+                    <InputHelpText>
+                      Must be at least 4 characters long
+                    </InputHelpText>
+                    {hasSubmitted && errors.Name && (
+                      <ErrorMessage>
+                        <ErrorIcon />
+                        {errors.Name}
+                      </ErrorMessage>
+                    )}
+                  </FormGroup>
 
-              <FormGroup>
-                <Label htmlFor="supplier-email">
-                  Email Address <Required>*</Required>
-                </Label>
-                <Input
-                  id="supplier-email"
-                  type="email"
-                  value={Email}
-                  onChange={handleEmailChange}
-                  placeholder="supplier@example.com"
-                  hasError={!!errors.email}
-                />
-                <InputHelpText>
-                  Must be a valid email format
-                </InputHelpText>
-                {hasSubmitted && errors.email && (
-                  <ErrorMessage>
-                    <ErrorIcon />
-                    {errors.email}
-                  </ErrorMessage>
-                )}
-              </FormGroup>
+                  <FormGroup>
+                    <Label htmlFor="supplier-email">
+                      Email Address <Required>*</Required>
+                    </Label>
+                    <Input
+                      id="supplier-email"
+                      type="email"
+                      value={Email}
+                      onChange={handleEmailChange}
+                      placeholder="supplier@example.com"
+                      hasError={!!errors.email}
+                    />
+                    <InputHelpText>
+                      Must be a valid email format
+                    </InputHelpText>
+                    {hasSubmitted && errors.email && (
+                      <ErrorMessage>
+                        <ErrorIcon />
+                        {errors.email}
+                      </ErrorMessage>
+                    )}
+                  </FormGroup>
 
-              <FormGroup>
-                <Label htmlFor="supplier-phone">
-                  Phone Number <Required>*</Required>
-                </Label>
-                <Input
-                  id="supplier-phone"
-                  type="tel"
-                  value={Phone}
-                  onChange={handlePhoneChange}
-                  placeholder="Enter 10-digit phone number"
-                  maxLength={10}
-                  hasError={!!errors.phone_number}
-                />
-                <InputHelpText>
-                  Must be exactly 10 digits
-                </InputHelpText>
-                {hasSubmitted && errors.phone_number && (
-                  <ErrorMessage>
-                    <ErrorIcon />
-                    {errors.phone_number}
-                  </ErrorMessage>
-                )}
-              </FormGroup>
-            </Form>
+                  <FormGroup>
+                    <Label htmlFor="supplier-phone">
+                      Phone Number <Required>*</Required>
+                    </Label>
+                    <Input
+                      id="supplier-phone"
+                      type="tel"
+                      value={Phone}
+                      onChange={handlePhoneChange}
+                      placeholder="Enter 10-digit phone number"
+                      maxLength={10}
+                      hasError={!!errors.phone_number}
+                    />
+                    <InputHelpText>
+                      Must be exactly 10 digits
+                    </InputHelpText>
+                    {hasSubmitted && errors.phone_number && (
+                      <ErrorMessage>
+                        <ErrorIcon />
+                        {errors.phone_number}
+                      </ErrorMessage>
+                    )}
+                  </FormGroup>
+                </Form>
 
-            <ButtonGroup>
-              <LeftButtonGroup>
-                <DeleteButton type="button" onClick={handleDeleteClick}>
-                  <DeleteIcon />
-                  Delete Supplier
-                </DeleteButton>
-              </LeftButtonGroup>
-              <RightButtonGroup>
-                <CancelButton type="button" onClick={handleCancel}>
-                  Cancel
-                </CancelButton>
-                <SubmitButton 
-                  type="submit" 
-                  disabled={!hasChanges()}
-                  onClick={handleSubmit}
-                >
-                  <SaveIcon />
-                  Save Changes
-                </SubmitButton>
-              </RightButtonGroup>
-            </ButtonGroup>
-          </FormContainer>
+                <ButtonGroup>
+                  <LeftButtonGroup>
+                    <DeleteButton type="button" onClick={handleDeleteClick}>
+                      <DeleteIcon />
+                      Delete Supplier
+                    </DeleteButton>
+                  </LeftButtonGroup>
+                  <RightButtonGroup>
+                    <CancelButton type="button" onClick={handleCancel}>
+                      Cancel
+                    </CancelButton>
+                    <SubmitButton 
+                      type="submit" 
+                      disabled={!hasChanges()}
+                      onClick={handleSubmit}
+                    >
+                      <SaveIcon />
+                      Save Changes
+                    </SubmitButton>
+                  </RightButtonGroup>
+                </ButtonGroup>
+              </FormContainer>
 
-          <SaveIndicator $isVisible={showSaveIndicator}>
-            <CheckIcon />
-            Changes saved successfully
-          </SaveIndicator>
+              <SaveIndicator $isVisible={showSaveIndicator}>
+                <CheckIcon />
+                Changes saved successfully
+              </SaveIndicator>
 
-          <ErrorIndicator $isVisible={showErrorIndicator}>
-            <ErrorIcon />
-            Please fix validation errors to save changes
-          </ErrorIndicator>
+              <ErrorIndicator $isVisible={showErrorIndicator}>
+                <ErrorIcon />
+                Please fix validation errors to save changes
+              </ErrorIndicator>
+            </LeftColumn>
+
+            {/* Right Column - Product Linker Component */}
+            <RightColumn>
+              <ProductLinkerCompoent
+                supplier={props.item}
+                products={props.products}
+                // Add any additional props that ProductLinkerComponent might need
+              />
+            </RightColumn>
+          </ColumnsContainer>
         </Content>
       </Container>
       <ConfirmModal
@@ -604,4 +643,4 @@ export default function EditSupplier(props: EditSupplierProps) {
       />
     </>
   )
-}
+} 
