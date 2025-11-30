@@ -4,6 +4,7 @@ import type { SupplierProductResponse, SupplierResponse } from '../../script/obj
 import { TbAlertCircle, TbCheck, TbChevronLeft, TbTrash } from 'react-icons/tb'
 import ConfirmModal from '../ConfirmModal'
 import ProductLinkerCompoent from "./ProductLinkerCompoent"
+import LinkProduct from './LinkProduct'
 
 interface EditSupplierProps {
   item: SupplierResponse
@@ -22,7 +23,7 @@ const Container = styled.div`
   overflow: hidden;
 `
 
-const Header = styled.div`
+const Header = styled.div`  
   display: flex;
   align-items: center;
   margin-bottom: 2.5rem;
@@ -339,6 +340,7 @@ export default function EditSupplier(props: EditSupplierProps) {
   const [Name, setName] = useState(props.item.Name)
   const [Email, setEmail] = useState(props.item.email)
   const [Phone, setPhone] = useState(props.item.phone_number)
+  const [IsNewLink,setIsNewLink]=useState<boolean>(false)
   const [errors, setErrors] = useState<{ 
     Name?: string; 
     email?: string; 
@@ -486,6 +488,9 @@ export default function EditSupplier(props: EditSupplierProps) {
     setIsDeleteModalOpen(false)
   }
 
+  if(IsNewLink)
+    return <LinkProduct/>
+
   return (
     <>
       <Container>
@@ -582,6 +587,7 @@ export default function EditSupplier(props: EditSupplierProps) {
               <ProductLinkerCompoent
                 supplier={props.item}
                 products={props.products}
+                setIsNewLink={setIsNewLink}
                 // Add any additional props that ProductLinkerComponent might need
               />
             </RightColumn>

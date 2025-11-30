@@ -6,8 +6,6 @@ import { FaTimesCircle, FaPlus } from 'react-icons/fa';
 const Container = styled.div`
   width: 100%;
   height: 100%;
-  padding: 1rem;
-  flex: 1;
   display: flex;
   flex-direction: column;
   font-family: 'Inter', sans-serif;
@@ -19,7 +17,7 @@ const Card = styled.div`
   border: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  height: 100%;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   overflow: hidden;
@@ -36,6 +34,14 @@ const TitleContainer = styled.div`
   align-items: center;
   border-bottom: 1px solid #f3f4f6;
   user-select: none;
+  flex-shrink: 0;
+`
+
+const ContentArea = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Important for flex child to respect overflow */
 `
 
 const Content = styled.div`
@@ -43,6 +49,7 @@ const Content = styled.div`
   width: 100%;
   padding: 1.5rem;
   overflow-y: auto;
+  min-height: 0; /* Important for scrolling */
 
   /* Custom scrollbar styling */
   &::-webkit-scrollbar {
@@ -65,12 +72,13 @@ const Content = styled.div`
 `
 
 const AddBtnContainer = styled.div`
-  padding: 1.5rem;
+  padding: 10px;
   width: 100%;
   border-top: 1px solid #f3f4f6;
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0;
 `
 
 const AddBtn = styled.button`
@@ -88,6 +96,8 @@ const AddBtn = styled.button`
   gap: 0.5rem;
   transition: all 0.2s ease;
   box-shadow: 0 1px 2px 0 rgba(79, 70, 229, 0.05);
+  width: 100%;
+  justify-content: center;
 
   &:hover {
     background-color: #4338ca;
@@ -240,8 +250,8 @@ const AddIcon = styled(FaPlus)`
   font-size: 1rem;
 `
 
-export default function ProductLinkerComponent(props: { products: SupplierProductResponse[], supplier: SupplierResponse }) {
-    const [IsNewLink, setIsNewLink] = useState<boolean>(false);
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+export default function ProductLinkerComponent(props: { products: SupplierProductResponse[], supplier: SupplierResponse,setIsNewLink:Function}) {
     const IsEmpty = props.products.length === 0;
 
     if (IsEmpty) {
@@ -249,13 +259,15 @@ export default function ProductLinkerComponent(props: { products: SupplierProduc
             <Container>
                 <Card>
                     <TitleContainer>Offered Products</TitleContainer>
-                    <EmptyContent>
-                        <EmptyIcon />
-                        <Text>There are no registered products under this supplier</Text>
-                        <SubText>Get started by linking your first product to this supplier</SubText>
-                    </EmptyContent>
+                    <ContentArea>
+                        <EmptyContent>
+                            <EmptyIcon />
+                            <Text>There are no registered products under this supplier</Text>
+                            <SubText>Get started by linking your first product to this supplier</SubText>
+                        </EmptyContent>
+                    </ContentArea>
                     <AddBtnContainer>
-                        <AddBtn onClick={() => setIsNewLink(true)}>
+                        <AddBtn onClick={() => props.setIsNewLink(true)}>
                             <AddIcon />
                             Add Product To Offering
                         </AddBtn>
@@ -269,41 +281,43 @@ export default function ProductLinkerComponent(props: { products: SupplierProduc
         <Container>
             <Card>
                 <TitleContainer>Offered Products</TitleContainer>
-                <Content>
-                    <ProductList>
-                        {props.products.map((product, index) => (
-                            <ProductItem key={index}>
-                                <ProductInfo>
-                                    <ProductName>{product.name}</ProductName>
-                                    <ProductDetails>
-                                        {product.supplier_price && (
-                                            <ProductPrice>${product.supplier_price}</ProductPrice>
-                                        )}
-                                        {product.supplier_sku && (
-                                            <ProductSku>SKU: {product.supplier_sku}</ProductSku>
-                                        )}
-                                        {product.min_order_quantity && (
-                                            <span>Min Qty: {product.min_order_quantity}</span>
-                                        )}
-                                        {product.lead_time_days && (
-                                            <span>Lead Time: {product.lead_time_days} days</span>
-                                        )}
-                                    </ProductDetails>
-                                </ProductInfo>
-                                <ProductActions>
-                                    <ActionButton variant="primary">
-                                        Edit
-                                    </ActionButton>
-                                    <ActionButton variant="danger">
-                                        Remove
-                                    </ActionButton>
-                                </ProductActions>
-                            </ProductItem>
-                        ))}
-                    </ProductList>
-                </Content>
+                <ContentArea>
+                    <Content>
+                        <ProductList>
+                            {props.products.map((product, index) => (
+                                <ProductItem key={index}>
+                                    <ProductInfo>
+                                        <ProductName>{product.name}</ProductName>
+                                        <ProductDetails>
+                                            {product.supplier_price && (
+                                                <ProductPrice>${product.supplier_price}</ProductPrice>
+                                            )}
+                                            {product.supplier_sku && (
+                                                <ProductSku>SKU: {product.supplier_sku}</ProductSku>
+                                            )}
+                                            {product.min_order_quantity && (
+                                                <span>Min Qty: {product.min_order_quantity}</span>
+                                            )}
+                                            {product.lead_time_days && (
+                                                <span>Lead Time: {product.lead_time_days} days</span>
+                                            )}
+                                        </ProductDetails>
+                                    </ProductInfo>
+                                    <ProductActions>
+                                        <ActionButton variant="primary">
+                                            Edit
+                                        </ActionButton>
+                                        <ActionButton variant="danger">
+                                            Remove
+                                        </ActionButton>
+                                    </ProductActions>
+                                </ProductItem>
+                            ))}
+                        </ProductList>
+                    </Content>
+                </ContentArea>
                 <AddBtnContainer>
-                    <AddBtn onClick={() => setIsNewLink(true)}>
+                    <AddBtn onClick={() => props.setIsNewLink(true)}>
                         <AddIcon />
                         Add Product To Offering
                     </AddBtn>
