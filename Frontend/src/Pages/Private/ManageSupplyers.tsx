@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
-import { createSupplier, deleteSupplier, fetchSuppliers } from '../../script/network';
+import { createSupplier, deleteSupplier, fetchSuppliers, updateSupplier } from '../../script/network';
 import { getToken } from '../../script/utils';
 import type { SupplierResponse } from '../../script/objects';
 import LoadingComponent from './LoadingComponent';
@@ -220,7 +220,16 @@ export default function ManageSupplyers(props: { setError: Function }) {
         setIsEditingSupplyer(null)
         await getSupplyers(setSuppliers, props.setError)
       }
-    }} onBack={()=>setIsEditingSupplyer(null)} onUpdate={()=>{}} item={IsEditingSupplyer}/>
+    }} onBack={()=>setIsEditingSupplyer(null)} onUpdate={async (data:Partial<SupplierResponse> | null)=>{
+      if(data===null)
+        return;
+      const token=await getToken()
+      if(token){
+        updateSupplier(token,IsEditingSupplyer.ID,data);
+        setIsEditingSupplyer(null)
+        await getSupplyers(setSuppliers, props.setError)
+      }
+    }} item={IsEditingSupplyer}/>
   return (
     <Container>
       <ContainerInner>
