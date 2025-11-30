@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import type { SupplierResponse } from '../../script/objects'
-import { TbAlertCircle, TbCheck, TbChevronLeft } from 'react-icons/tb'
+import { TbAlertCircle, TbCheck, TbChevronLeft, TbTrash } from 'react-icons/tb'
 
 interface EditSupplierProps {
   item: SupplierResponse
   onBack: () => void
   onUpdate: (updatedSupplier: Partial<SupplierResponse>) => void
+  onDelete: () => void
 }
 
 const Container = styled.div`
@@ -67,7 +68,7 @@ const Title = styled.h1`
   margin-bottom: 2rem;
 `
 
-const Form = styled.div`
+const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -124,6 +125,101 @@ const ErrorMessage = styled.div`
   gap: 0.5rem;
 `
 
+const ButtonGroup = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 2rem;
+  border-top: 1px solid #f3f4f6;
+`
+
+const LeftButtonGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+`
+
+const RightButtonGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+`
+
+const DeleteButton = styled.button`
+  padding: 0.75rem 2rem;
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #fee2e2;
+    border-color: #fca5a5;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`
+
+const CancelButton = styled.button`
+  padding: 0.75rem 2rem;
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+  }
+`
+
+const SubmitButton = styled.button<{ disabled?: boolean }>`
+  padding: 0.75rem 2rem;
+  background-color: ${props => props.disabled ? '#9ca3af' : '#4f46e5'};
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  font-family: 'Inter', sans-serif;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: ${props => props.disabled ? '#9ca3af' : '#4338ca'};
+    transform: ${props => props.disabled ? 'none' : 'translateY(-1px)'};
+    box-shadow: ${props => props.disabled ? 'none' : '0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -1px rgba(79, 70, 229, 0.06)'};
+  }
+
+  &:active {
+    transform: ${props => props.disabled ? 'none' : 'translateY(0)'};
+  }
+`
+
 const SaveIndicator = styled.div<{ $isVisible: boolean }>`
   background-color: #059669;
   color: white;
@@ -153,122 +249,209 @@ const ErrorIndicator = styled.div<{ $isVisible: boolean }>`
   border: 1px solid #fecaca;
 `
 
-export const BackIcon = () => (
+const DeleteConfirmation = styled.div<{ $isVisible: boolean }>`
+  background-color: #fef2f2;
+  color: #dc2626;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  display: ${props => props.$isVisible ? 'block' : 'none'};
+  margin-bottom: 1rem;
+`
+
+const DeleteConfirmationText = styled.p`
+  margin: 0 0 1rem 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+`
+
+const DeleteConfirmationButtons = styled.div`
+  display: flex;
+  gap: 0.75rem;
+`
+
+const ConfirmDeleteButton = styled.button`
+  padding: 0.5rem 1rem;
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #b91c1c;
+    transform: translateY(-1px);
+  }
+`
+
+const CancelDeleteButton = styled.button`
+  padding: 0.5rem 1rem;
+  background-color: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #f9fafb;
+  }
+`
+
+const BackIcon = () => (
   <TbChevronLeft size={16} color="#4f46e5" />
-);
+)
 
-export const CheckIcon = () => (
+const CheckIcon = () => (
   <TbCheck size={16} color="currentColor" />
-);
+)
 
-export const ErrorIcon = () => (
+const ErrorIcon = () => (
   <TbAlertCircle size={16} color="currentColor" />
-);
+)
+
+const SaveIcon = () => (
+  <TbCheck size={16} color="currentColor" />
+)
+
+const DeleteIcon = () => (
+  <TbTrash size={16} color="currentColor" />
+)
 
 export default function EditSupplier(props: EditSupplierProps) {
-  const [Name, setName] = useState(props.item.Name);
-  const [Email, setEmail] = useState(props.item.email);
-  const [Phone, setPhone] = useState(props.item.phone_number);
+  const [Name, setName] = useState(props.item.Name)
+  const [Email, setEmail] = useState(props.item.email)
+  const [Phone, setPhone] = useState(props.item.phone_number)
   const [errors, setErrors] = useState<{ 
     Name?: string; 
     email?: string; 
     phone_number?: string;
-  }>({});
-  const [showSaveIndicator, setShowSaveIndicator] = useState(false);
-  const [showErrorIndicator, setShowErrorIndicator] = useState(false);
-  const [hasChanged, setHasChanged] = useState(false);
+  }>({})
+  const [showSaveIndicator, setShowSaveIndicator] = useState(false)
+  const [showErrorIndicator, setShowErrorIndicator] = useState(false)
+  const [hasSubmitted, setHasSubmitted] = useState(false)
 
   const validateForm = () => {
-    const newErrors: { Name?: string; email?: string; phone_number?: string } = {};
+    const newErrors: { Name?: string; email?: string; phone_number?: string } = {}
     
-    const visibleName = Name.trim();
+    const visibleName = Name.trim()
     if (!visibleName) {
-      newErrors.Name = 'Supplier name is required';
+      newErrors.Name = 'Supplier name is required'
     } else if (visibleName.length < 4) {
-      newErrors.Name = 'Supplier name must be at least 4 characters long';
+      newErrors.Name = 'Supplier name must be at least 4 characters long'
     }
     
-    const phoneDigits = Phone.replace(/\D/g, '');
+    const phoneDigits = Phone.replace(/\D/g, '')
     if (!Phone) {
-      newErrors.phone_number = 'Phone number is required';
+      newErrors.phone_number = 'Phone number is required'
     } else if (phoneDigits.length !== 10) {
-      newErrors.phone_number = 'Phone number must be exactly 10 digits';
+      newErrors.phone_number = 'Phone number must be exactly 10 digits'
     }
     
     if (!Email) {
-      newErrors.email = 'Email address is required';
+      newErrors.email = 'Email address is required'
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(Email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = 'Please enter a valid email address'
     }
     
-    return newErrors;
-  };
+    return newErrors
+  }
+
+  const hasChanges = () => {
+    return (
+      Name !== props.item.Name ||
+      Email !== props.item.email ||
+      Phone !== props.item.phone_number
+    )
+  }
+
+  const isFormValid = () => {
+    const formErrors = validateForm()
+    return Object.keys(formErrors).length === 0
+  }
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setName(e.target.value);
-    setHasChanged(true);
+    setName(e.target.value)
     
-    if (errors.Name) {
-      setErrors(prev => ({ ...prev, Name: undefined }));
+    if (hasSubmitted && errors.Name) {
+      setErrors(prev => ({ ...prev, Name: undefined }))
     }
-  };
+  }
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-    setHasChanged(true);
+    setEmail(e.target.value)
     
-    if (errors.email) {
-      setErrors(prev => ({ ...prev, email: undefined }));
+    if (hasSubmitted && errors.email) {
+      setErrors(prev => ({ ...prev, email: undefined }))
     }
-  };
+  }
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '');
-    setPhone(value);
-    setHasChanged(true);
+    const value = e.target.value.replace(/\D/g, '')
+    setPhone(value)
     
-    if (errors.phone_number) {
-      setErrors(prev => ({ ...prev, phone_number: undefined }));
+    if (hasSubmitted && errors.phone_number) {
+      setErrors(prev => ({ ...prev, phone_number: undefined }))
     }
-  };
+  }
 
-  useEffect(() => {
-    if (hasChanged) {
-      const formErrors = validateForm();
-      setErrors(formErrors);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setHasSubmitted(true)
+    
+    const formErrors = validateForm()
+    setErrors(formErrors)
 
-      if (Object.keys(formErrors).length === 0) {
-        const updateData = {
-          Name: Name.trim(),
-          email: Email,
-          phone_number: Phone
-        };
-
-        props.onUpdate(updateData);
-
-        setShowSaveIndicator(true);
-        setShowErrorIndicator(false);
-        const timer = setTimeout(() => {
-          setShowSaveIndicator(false);
-        }, 2000);
-
-        return () => clearTimeout(timer);
-      } else {
-        setShowErrorIndicator(true);
-        setShowSaveIndicator(false);
-        const timer = setTimeout(() => {
-          setShowErrorIndicator(false);
-        }, 3000);
-
-        return () => clearTimeout(timer);
+    if (Object.keys(formErrors).length === 0) {
+      const updateData = {
+        Name: Name.trim(),
+        email: Email,
+        phone_number: Phone
       }
-    }
-  }, [Name, Email, Phone, hasChanged]);
 
+      props.onUpdate(updateData)
+
+      setShowSaveIndicator(true)
+      setShowErrorIndicator(false)
+      const timer = setTimeout(() => {
+        setShowSaveIndicator(false)
+      }, 2000)
+
+      return () => clearTimeout(timer)
+    } else {
+      setShowErrorIndicator(true)
+      setShowSaveIndicator(false)
+      const timer = setTimeout(() => {
+        setShowErrorIndicator(false)
+      }, 3000)
+
+      return () => clearTimeout(timer)
+    }
+  }
+
+  const handleCancel = () => {
+    // Reset form to original values
+    setName(props.item.Name)
+    setEmail(props.item.email)
+    setPhone(props.item.phone_number)
+    setErrors({})
+    setHasSubmitted(false)
+    setShowSaveIndicator(false)
+    setShowErrorIndicator(false)
+  }
+
+  const handleDeleteClick = () => {
+    props.onDelete()
+  }
   return (
     <Container>
       <Header>
-        <BackButton onClick={props.onBack}>
+        <BackButton onClick={props.onBack} type="button">
           <BackIcon />
           Back to Suppliers
         </BackButton>
@@ -276,8 +459,7 @@ export default function EditSupplier(props: EditSupplierProps) {
       
       <Content>
         <Title>Edit Supplier</Title>
-        
-        <Form>
+        <Form onSubmit={handleSubmit}>
           <FormGroup>
             <Label htmlFor="supplier-name">
               Supplier Name <Required>*</Required>
@@ -293,7 +475,7 @@ export default function EditSupplier(props: EditSupplierProps) {
             <InputHelpText>
               Must be at least 4 characters long
             </InputHelpText>
-            {errors.Name && (
+            {hasSubmitted && errors.Name && (
               <ErrorMessage>
                 <ErrorIcon />
                 {errors.Name}
@@ -316,7 +498,7 @@ export default function EditSupplier(props: EditSupplierProps) {
             <InputHelpText>
               Must be a valid email format
             </InputHelpText>
-            {errors.email && (
+            {hasSubmitted && errors.email && (
               <ErrorMessage>
                 <ErrorIcon />
                 {errors.email}
@@ -340,13 +522,34 @@ export default function EditSupplier(props: EditSupplierProps) {
             <InputHelpText>
               Must be exactly 10 digits
             </InputHelpText>
-            {errors.phone_number && (
+            {hasSubmitted && errors.phone_number && (
               <ErrorMessage>
                 <ErrorIcon />
                 {errors.phone_number}
               </ErrorMessage>
             )}
           </FormGroup>
+
+          <ButtonGroup>
+            <LeftButtonGroup>
+              <DeleteButton type="button" onClick={handleDeleteClick}>
+                <DeleteIcon />
+                Delete Supplier
+              </DeleteButton>
+            </LeftButtonGroup>
+            <RightButtonGroup>
+              <CancelButton type="button" onClick={handleCancel}>
+                Cancel
+              </CancelButton>
+              <SubmitButton 
+                type="submit" 
+                disabled={!hasChanges() || !isFormValid()}
+              >
+                <SaveIcon />
+                Save Changes
+              </SubmitButton>
+            </RightButtonGroup>
+          </ButtonGroup>
         </Form>
 
         <SaveIndicator $isVisible={showSaveIndicator}>
