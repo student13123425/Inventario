@@ -414,6 +414,7 @@ export default function EditSupplier(props: EditSupplierProps) {
   const handleDeleteConfirm = () => {
     props.onDelete()
     setIsDeleteModalOpen(false)
+    
   }
 
   const handleDeleteCancel = () => {

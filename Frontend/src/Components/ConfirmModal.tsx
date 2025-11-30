@@ -6,8 +6,8 @@ import { TbX } from 'react-icons/tb';
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
-  onCancel: () => void;
+  onConfirm: () => void | Promise<void>;
+  onCancel?: () => void;
   title: string;
   content: string;
   icon: IconType;
@@ -15,7 +15,6 @@ interface ConfirmModalProps {
   cancelText?: string;
 }
 
-// Keyframes
 const overlayIn = keyframes`
   from { opacity: 0; backdrop-filter: blur(0px); }
   to   { opacity: 1; backdrop-filter: blur(4px); }
@@ -39,17 +38,15 @@ const modalOut = keyframes`
 const Overlay = styled.div<{ $isOpen: boolean; $isClosing: boolean }>`
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
-  font-family: 'Inter', sans-serif;
-
-  /* Default hidden state */
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+  font-family: 'Inter', sans-serif;
 
   ${({ $isOpen, $isClosing }) =>
     $isOpen &&
@@ -57,7 +54,6 @@ const Overlay = styled.div<{ $isOpen: boolean; $isClosing: boolean }>`
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
-
       animation: ${!$isClosing
         ? css`${overlayIn} 0.3s ease-out forwards`
         : css`${overlayOut} 0.2s ease-in forwards`};
@@ -67,14 +63,10 @@ const Overlay = styled.div<{ $isOpen: boolean; $isClosing: boolean }>`
 const ModalContainer = styled.div<{ $isOpen: boolean; $isClosing: boolean }>`
   width: 90%;
   max-width: 500px;
-  background-color: #ffffff;
+  background: white;
   border-radius: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  display: flex;
-  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
   overflow: hidden;
-
   opacity: 0;
   transform: scale(0.8);
 
@@ -84,7 +76,7 @@ const ModalContainer = styled.div<{ $isOpen: boolean; $isClosing: boolean }>`
       opacity: 1;
       transform: scale(1);
       animation: ${!$isClosing
-        ? css`${modalIn} 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards`
+        ? css`${modalIn} 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards`
         : css`${modalOut} 0.2s ease-in forwards`};
     `}
 `;
@@ -173,7 +165,6 @@ const Button = styled.button<{ variant: 'primary' | 'secondary' | 'danger' }>`
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.875rem;
-  font-family: 'Inter', sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -181,50 +172,29 @@ const Button = styled.button<{ variant: 'primary' | 'secondary' | 'danger' }>`
   justify-content: center;
   gap: 0.5rem;
 
-  ${props =>
-    props.variant === 'primary' &&
-    css`
-      background-color: #4f46e5;
-      color: #ffffff;
-      &:hover {
-        background-color: #4338ca;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1),
-          0 2px 4px -1px rgba(79, 70, 229, 0.06);
-      }
-    `}
+  ${p => p.variant === 'primary' && css`
+    background: #4f46e5;
+    color: white;
+    &:hover { background: #4338ca; transform: translateY(-1px); }
+  `}
 
-  ${props =>
-    props.variant === 'secondary' &&
-    css`
-      background-color: #ffffff;
-      color: #374151;
-      border: 1px solid #d1d5db;
-      &:hover {
-        background-color: #f9fafb;
-        border-color: #9ca3af;
-      }
-    `}
+  ${p => p.variant === 'secondary' && css`
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    &:hover { background: #f9fafb; border-color: #9ca3af; }
+  `}
 
-  ${props =>
-    props.variant === 'danger' &&
-    css`
-      background-color: #dc2626;
-      color: #ffffff;
-      &:hover {
-        background-color: #b91c1c;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.1),
-          0 2px 4px -1px rgba(220, 38, 38, 0.06);
-      }
-    `}
+  ${p => p.variant === 'danger' && css`
+    background: #dc2626;
+    color: white;
+    &:hover { background: #b91c1c; transform: translateY(-1px); }
+  `}
 
-  &:active {
-    transform: translateY(0);
-  }
+  &:active { transform: translateY(0); }
 `;
 
-export const CloseIcon = () => <TbX size={20} color="currentColor" />;
+export const CloseIcon = () => <TbX size={20} />;
 
 export default function ConfirmModal({
   isOpen,
@@ -237,86 +207,60 @@ export default function ConfirmModal({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
 }: ConfirmModalProps) {
-  const [isClosing, setIsClosing] = useState<boolean>(false);
-  const [isVisible, setIsVisible] = useState<boolean>(false);
-  const [pendingConfirm, setPendingConfirm] = useState<boolean>(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
-  // Open / close handling with animation
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
       setIsClosing(false);
-      setPendingConfirm(false);
     } else if (isVisible) {
       setIsClosing(true);
       const timer = setTimeout(() => {
         setIsVisible(false);
         setIsClosing(false);
-        // If there's a pending confirm, execute it after animation completes
-        if (pendingConfirm) {
-          onConfirm();
-          setPendingConfirm(false);
-        }
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, isVisible, pendingConfirm, onConfirm]);
+  }, [isOpen, isVisible]);
 
-  const handleClose = () => {
+  const startClosing = () => {
     if (isClosing) return;
     setIsClosing(true);
     setTimeout(() => {
       setIsVisible(false);
       setIsClosing(false);
       onClose();
-      onCancel();
     }, 200);
   };
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) handleClose();
-  };
-
-  const handleConfirm = () => {
-    if (isClosing) return;
-    
-    // Set pending confirm and start closing animation
-    setPendingConfirm(true);
-    setIsClosing(true);
-    
-    // Don't call onConfirm here - it will be called after animation completes
-    // in the useEffect cleanup
+    if (e.target === e.currentTarget) startClosing();
   };
 
   const handleCancel = () => {
-    if (isClosing) return;
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsVisible(false);
-      setIsClosing(false);
-      onCancel();
-      onClose();
-    }, 200);
+    onCancel?.();
+    startClosing();
   };
 
-  // Prevent body scroll
+  const handleConfirm = async () => {
+    try {
+      await onConfirm();
+    } finally {
+      startClosing();
+    }
+  };
+
   useEffect(() => {
     if (isVisible) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'unset';
-
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    return () => { document.body.style.overflow = 'unset'; };
   }, [isVisible]);
 
   if (!isVisible && !isClosing) return null;
 
   return (
-    <Overlay
-      $isOpen={isOpen}
-      $isClosing={isClosing}
-      onClick={handleBackdropClick}
-    >
+    <Overlay $isOpen={isOpen} $isClosing={isClosing} onClick={handleBackdropClick}>
       <ModalContainer $isOpen={isOpen && !isClosing} $isClosing={isClosing}>
         <ModalHeader>
           <TitleSection>
@@ -328,12 +272,12 @@ export default function ConfirmModal({
               <Content>{content}</Content>
             </TextContent>
           </TitleSection>
-          <CloseButton onClick={handleCancel}>
+          <CloseButton onClick={startClosing}>
             <CloseIcon />
           </CloseButton>
         </ModalHeader>
 
-        <ModalBody>{/* Extra content can go here */}</ModalBody>
+        <ModalBody />
 
         <ModalFooter>
           <Button variant="secondary" onClick={handleCancel} disabled={isClosing}>
