@@ -241,7 +241,7 @@ export default function ManageSupplyers(props: { setError: Function }) {
     }}/>
   
   if(IsEditingSupplyer!==null)
-    return <EditSupplyer products={IsEditingSupplyer.products} onDelete={async ()=>{
+    return <EditSupplyer onDelete={async ()=>{
       const token=await getToken();
       if(token!==null){
         await deleteSupplier(token,IsEditingSupplyer.ID)

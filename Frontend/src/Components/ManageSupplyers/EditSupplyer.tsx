@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
-import type { SupplierProductResponse, SupplierResponse } from '../../script/objects'
+import type { SupplierResponse, SupplierProductResponse } from '../../script/objects'
 import { TbAlertCircle, TbCheck, TbChevronLeft, TbTrash } from 'react-icons/tb'
 import ConfirmModal from '../ConfirmModal'
 import ProductLinkerCompoent from "./ProductLinkerCompoent"
 import LinkProduct from './LinkProduct'
+import { fetchSupplierProducts } from '../../script/network'
+import { getToken } from '../../script/utils'
 
 interface EditSupplierProps {
   item: SupplierResponse
   onBack: () => void
   onUpdate: (updatedSupplier: Partial<SupplierResponse>) => void
   onDelete: () => void
-  products: SupplierProductResponse[]
 }
 
 const Container = styled.div`
@@ -142,6 +143,7 @@ const FormGroup = styled.div`
   flex-direction: column;
   gap: 0.5rem;
   flex-shrink: 0;
+  width: 100%;
 `
 
 const Label = styled.label`
@@ -316,6 +318,15 @@ const ErrorIndicator = styled.div<{ $isVisible: boolean }>`
   flex-shrink: 0;
 `
 
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  color: #6b7280;
+  font-size: 1rem;
+`
+
 const BackIcon = () => (
   <TbChevronLeft size={16} color="#4f46e5" />
 )
@@ -340,7 +351,10 @@ export default function EditSupplier(props: EditSupplierProps) {
   const [Name, setName] = useState(props.item.Name)
   const [Email, setEmail] = useState(props.item.email)
   const [Phone, setPhone] = useState(props.item.phone_number)
-  const [IsNewLink,setIsNewLink]=useState<boolean>(false)
+  const [IsNewLink, setIsNewLink] = useState<boolean>(false)
+  const [products, setProducts] = useState<SupplierProductResponse[]>([])
+  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [productsError, setProductsError] = useState<string | null>(null)
   const [errors, setErrors] = useState<{ 
     Name?: string; 
     email?: string; 
@@ -352,6 +366,34 @@ export default function EditSupplier(props: EditSupplierProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [pendingUpdateData, setPendingUpdateData] = useState<Partial<SupplierResponse> | null>(null)
+
+  // Fetch products when component mounts
+  useEffect(() => {
+    const loadSupplierProducts = async () => {
+      try {
+        setIsLoading(true)
+        setProductsError(null)
+        const token = await getToken()
+        if (token) {
+          const result = await fetchSupplierProducts(token,props.item.ID)
+          if (result.success) {
+            setProducts(result.products)
+          } else {
+            setProductsError('Failed to load supplier products')
+          }
+        } else {
+          setProductsError('Authentication required')
+        }
+      } catch (error) {
+        console.error('Error fetching supplier products:', error)
+        setProductsError('Failed to load supplier products')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadSupplierProducts()
+  }, [props.item.ID])
 
   const validateForm = () => {
     const newErrors: { Name?: string; email?: string; phone_number?: string } = {}
@@ -481,15 +523,23 @@ export default function EditSupplier(props: EditSupplierProps) {
   const handleDeleteConfirm = () => {
     props.onDelete()
     setIsDeleteModalOpen(false)
-    
   }
 
   const handleDeleteCancel = () => {
     setIsDeleteModalOpen(false)
   }
 
-  if(IsNewLink)
-    return <LinkProduct/>
+  const handleLinkProduct = async (productId: number, supplierPrice: number, deliverySpeed: number) => {
+    // TODO: Implement product linking logic here
+    console.log('Linking product:', { productId, supplierPrice, deliverySpeed })
+    // You'll need to call an API function to link the product
+    // After successful linking, refresh the products list
+    setIsNewLink(false)
+  }
+
+  if (IsNewLink) {
+    return <LinkProduct onLinkProduct={handleLinkProduct} products={[]} />
+  }
 
   return (
     <>
@@ -584,12 +634,17 @@ export default function EditSupplier(props: EditSupplierProps) {
 
             {/* Right Column - Product Linker Component */}
             <RightColumn>
-              <ProductLinkerCompoent
-                supplier={props.item}
-                products={props.products}
-                setIsNewLink={setIsNewLink}
-                // Add any additional props that ProductLinkerComponent might need
-              />
+              {isLoading ? (
+                <LoadingContainer>Loading products...</LoadingContainer>
+              ) : productsError ? (
+                <LoadingContainer>Error: {productsError}</LoadingContainer>
+              ) : (
+                <ProductLinkerCompoent
+                  supplier={props.item}
+                  products={products}
+                  setIsNewLink={setIsNewLink}
+                />
+              )}
             </RightColumn>
           </ColumnsContainer>
 
