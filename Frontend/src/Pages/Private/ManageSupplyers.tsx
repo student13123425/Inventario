@@ -213,7 +213,7 @@ export default function ManageSupplyers(props: { setError: Function }) {
       setIsAddingSupplyers(false);
     }}/>
   if(IsEditingSupplyer!==null)
-    return <EditSupplyer item={IsEditingSupplyer}/>
+    return <EditSupplyer onBack={()=>setIsEditingSupplyer(null)} onUpdate={()=>{}} item={IsEditingSupplyer}/>
   return (
     <Container>
       <ContainerInner>
