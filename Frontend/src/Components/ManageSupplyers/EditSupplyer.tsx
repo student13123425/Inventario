@@ -517,7 +517,7 @@ export default function EditSupplier(props: EditSupplierProps) {
                 </CancelButton>
                 <SubmitButton 
                   type="submit" 
-                  disabled={!hasChanges() || !isFormValid()}
+                  disabled={!hasChanges()}
                 >
                   <SaveIcon />
                   Save Changes

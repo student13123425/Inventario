@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import styled from 'styled-components'
 import { FaArrowLeft, FaSave, FaTimes } from 'react-icons/fa'
+import ConfirmModal from '../ConfirmModal'
 
 const Overlay = styled.div`
   position: fixed;
@@ -236,6 +237,8 @@ export default function AddSupplyer({ onClose, onBack, onSubmit }: AddSupplyerPr
     email?: string;
   }>({})
   const [hasSubmitted, setHasSubmitted] = useState(false)
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+  const [pendingFormData, setPendingFormData] = useState<{ Name: string; phone_number: string; email: string } | null>(null)
 
   const validateForm = () => {
     const newErrors: { Name?: string; phone_number?: string; email?: string } = {}
@@ -274,12 +277,28 @@ export default function AddSupplyer({ onClose, onBack, onSubmit }: AddSupplyerPr
     setErrors(formErrors)
     
     if (Object.keys(formErrors).length === 0) {
-      onSubmit({
+      const submitData = {
         Name: formData.Name.trim(),
         phone_number: formData.phone_number,
         email: formData.email
-      })
+      }
+      // Show confirmation modal instead of directly submitting
+      setPendingFormData(submitData)
+      setIsConfirmModalOpen(true)
     }
+  }
+
+  const handleConfirmSubmit = () => {
+    if (pendingFormData) {
+      onSubmit(pendingFormData)
+      setIsConfirmModalOpen(false)
+      setPendingFormData(null)
+    }
+  }
+
+  const handleCancelSubmit = () => {
+    setIsConfirmModalOpen(false)
+    setPendingFormData(null)
   }
 
   const handleChange = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -316,70 +335,91 @@ export default function AddSupplyer({ onClose, onBack, onSubmit }: AddSupplyerPr
   }
 
   return (
-    <Overlay>
-      <FormContainer>
-        <Header>
-          <BackButton onClick={onBack} type="button">
-            <BackIcon />
-            Back
-          </BackButton>
-          <Title>Add New Supplier</Title>
-        </Header>
-        
-        <Form onSubmit={handleSubmit}>
-          <InputGroup>
-            <Label>
-              Supplier Name <Required>*</Required>
-            </Label>
-            <Input
-              type="text"
-              value={formData.Name}
-              onChange={handleChange('Name')}
-              placeholder="Enter supplier name (minimum 4 characters)"
-              required
-            />
-            <FieldRequirements>Must be at least 4 characters long</FieldRequirements>
-            {hasSubmitted && errors.Name && <ErrorMessage>{errors.Name}</ErrorMessage>}
-          </InputGroup>
+    <>
+      <Overlay>
+        <FormContainer>
+          <Header>
+            <BackButton onClick={onBack} type="button">
+              <BackIcon />
+              Back
+            </BackButton>
+            <Title>Add New Supplier</Title>
+            <CloseButton onClick={onClose} type="button">
+              <CloseIcon />
+            </CloseButton>
+          </Header>
           
-          <InputGroup>
-            <Label>
-              Phone Number <Required>*</Required>
-            </Label>
-            <Input
-              type="tel"
-              value={formData.phone_number}
-              onChange={handleChange('phone_number')}
-              placeholder="Enter 10-digit phone number"
-              maxLength={10}
-              required
-            />
-            <FieldRequirements>Must be exactly 10 digits</FieldRequirements>
-            {hasSubmitted && errors.phone_number && <ErrorMessage>{errors.phone_number}</ErrorMessage>}
-          </InputGroup>
-          
-          <InputGroup>
-            <Label>
-              Email Address <Required>*</Required>
-            </Label>
-            <Input
-              type="email"
-              value={formData.email}
-              onChange={handleChange('email')}
-              placeholder="Enter valid email address"
-              required
-            />
-            <FieldRequirements>Must be a valid email format</FieldRequirements>
-            {hasSubmitted && errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
-          </InputGroup>
-          <ButtonGroup>
-            <SubmitButton type="submit" disabled={false}>
-              <SaveIcon />
-              Save Supplier
-            </SubmitButton>
-          </ButtonGroup>
-        </Form>
-      </FormContainer>
-    </Overlay>
+          <Form onSubmit={handleSubmit}>
+            <InputGroup>
+              <Label>
+                Supplier Name <Required>*</Required>
+              </Label>
+              <Input
+                type="text"
+                value={formData.Name}
+                onChange={handleChange('Name')}
+                placeholder="Enter supplier name (minimum 4 characters)"
+                required
+              />
+              <FieldRequirements>Must be at least 4 characters long</FieldRequirements>
+              {hasSubmitted && errors.Name && <ErrorMessage>{errors.Name}</ErrorMessage>}
+            </InputGroup>
+            
+            <InputGroup>
+              <Label>
+                Phone Number <Required>*</Required>
+              </Label>
+              <Input
+                type="tel"
+                value={formData.phone_number}
+                onChange={handleChange('phone_number')}
+                placeholder="Enter 10-digit phone number"
+                maxLength={10}
+                required
+              />
+              <FieldRequirements>Must be exactly 10 digits</FieldRequirements>
+              {hasSubmitted && errors.phone_number && <ErrorMessage>{errors.phone_number}</ErrorMessage>}
+            </InputGroup>
+            
+            <InputGroup>
+              <Label>
+                Email Address <Required>*</Required>
+              </Label>
+              <Input
+                type="email"
+                value={formData.email}
+                onChange={handleChange('email')}
+                placeholder="Enter valid email address"
+                required
+              />
+              <FieldRequirements>Must be a valid email format</FieldRequirements>
+              {hasSubmitted && errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
+            </InputGroup>
+            <ButtonGroup>
+              <SubmitButton 
+                type="submit" 
+                disabled={!isFormValid()}
+              >
+                <SaveIcon />
+                Save Supplier
+              </SubmitButton>
+            </ButtonGroup>
+          </Form>
+        </FormContainer>
+      </Overlay>
+
+      {/* Add Supplier Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={handleCancelSubmit}
+        onConfirm={handleConfirmSubmit}
+        onCancel={handleCancelSubmit}
+        title="Add New Supplier"
+        content="Are you sure you want to add this new supplier? This will create a new supplier record in the system."
+        icon={FaSave}
+        confirmText="Add Supplier"
+        cancelText="Cancel"
+      />
+    </>
   )
 }
