@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import type { SupplierResponse } from '../../script/objects'
 import { TbAlertCircle, TbCheck, TbChevronLeft, TbTrash } from 'react-icons/tb'
+import ConfirmModal from '../ConfirmModal'
 
 interface EditSupplierProps {
   item: SupplierResponse
@@ -249,60 +250,6 @@ const ErrorIndicator = styled.div<{ $isVisible: boolean }>`
   border: 1px solid #fecaca;
 `
 
-const DeleteConfirmation = styled.div<{ $isVisible: boolean }>`
-  background-color: #fef2f2;
-  color: #dc2626;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  border: 1px solid #fecaca;
-  display: ${props => props.$isVisible ? 'block' : 'none'};
-  margin-bottom: 1rem;
-`
-
-const DeleteConfirmationText = styled.p`
-  margin: 0 0 1rem 0;
-  font-size: 0.875rem;
-  font-weight: 500;
-`
-
-const DeleteConfirmationButtons = styled.div`
-  display: flex;
-  gap: 0.75rem;
-`
-
-const ConfirmDeleteButton = styled.button`
-  padding: 0.5rem 1rem;
-  background-color: #dc2626;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: #b91c1c;
-    transform: translateY(-1px);
-  }
-`
-
-const CancelDeleteButton = styled.button`
-  padding: 0.5rem 1rem;
-  background-color: #ffffff;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: #f9fafb;
-  }
-`
-
 const BackIcon = () => (
   <TbChevronLeft size={16} color="#4f46e5" />
 )
@@ -335,6 +282,9 @@ export default function EditSupplier(props: EditSupplierProps) {
   const [showSaveIndicator, setShowSaveIndicator] = useState(false)
   const [showErrorIndicator, setShowErrorIndicator] = useState(false)
   const [hasSubmitted, setHasSubmitted] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
+  const [pendingUpdateData, setPendingUpdateData] = useState<Partial<SupplierResponse> | null>(null)
 
   const validateForm = () => {
     const newErrors: { Name?: string; email?: string; phone_number?: string } = {}
@@ -413,16 +363,10 @@ export default function EditSupplier(props: EditSupplierProps) {
         email: Email,
         phone_number: Phone
       }
-
-      props.onUpdate(updateData)
-
-      setShowSaveIndicator(true)
-      setShowErrorIndicator(false)
-      const timer = setTimeout(() => {
-        setShowSaveIndicator(false)
-      }, 2000)
-
-      return () => clearTimeout(timer)
+      
+      // Show confirmation modal for save
+      setPendingUpdateData(updateData)
+      setIsSaveModalOpen(true)
     } else {
       setShowErrorIndicator(true)
       setShowSaveIndicator(false)
@@ -432,6 +376,24 @@ export default function EditSupplier(props: EditSupplierProps) {
 
       return () => clearTimeout(timer)
     }
+  }
+
+  const handleSaveConfirm = () => {
+    if (pendingUpdateData) {
+      props.onUpdate(pendingUpdateData)
+      setShowSaveIndicator(true)
+      setShowErrorIndicator(false)
+      const timer = setTimeout(() => {
+        setShowSaveIndicator(false)
+      }, 2000)
+    }
+    setIsSaveModalOpen(false)
+    setPendingUpdateData(null)
+  }
+
+  const handleSaveCancel = () => {
+    setIsSaveModalOpen(false)
+    setPendingUpdateData(null)
   }
 
   const handleCancel = () => {
@@ -446,122 +408,161 @@ export default function EditSupplier(props: EditSupplierProps) {
   }
 
   const handleDeleteClick = () => {
-    props.onDelete()
+    setIsDeleteModalOpen(true)
   }
+
+  const handleDeleteConfirm = () => {
+    props.onDelete()
+    setIsDeleteModalOpen(false)
+  }
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false)
+  }
+
   return (
-    <Container>
-      <Header>
-        <BackButton onClick={props.onBack} type="button">
-          <BackIcon />
-          Back to Suppliers
-        </BackButton>
-      </Header>
-      
-      <Content>
-        <Title>Edit Supplier</Title>
-        <Form onSubmit={handleSubmit}>
-          <FormGroup>
-            <Label htmlFor="supplier-name">
-              Supplier Name <Required>*</Required>
-            </Label>
-            <Input
-              id="supplier-name"
-              type="text"
-              value={Name}
-              onChange={handleNameChange}
-              placeholder="Enter supplier name (minimum 4 characters)"
-              hasError={!!errors.Name}
-            />
-            <InputHelpText>
-              Must be at least 4 characters long
-            </InputHelpText>
-            {hasSubmitted && errors.Name && (
-              <ErrorMessage>
-                <ErrorIcon />
-                {errors.Name}
-              </ErrorMessage>
-            )}
-          </FormGroup>
+    <>
+      <Container>
+        <Header>
+          <BackButton onClick={props.onBack} type="button">
+            <BackIcon />
+            Back to Suppliers
+          </BackButton>
+        </Header>
+        
+        <Content>
+          <Title>Edit Supplier</Title>
+          
+          <Form onSubmit={handleSubmit}>
+            <FormGroup>
+              <Label htmlFor="supplier-name">
+                Supplier Name <Required>*</Required>
+              </Label>
+              <Input
+                id="supplier-name"
+                type="text"
+                value={Name}
+                onChange={handleNameChange}
+                placeholder="Enter supplier name (minimum 4 characters)"
+                hasError={!!errors.Name}
+              />
+              <InputHelpText>
+                Must be at least 4 characters long
+              </InputHelpText>
+              {hasSubmitted && errors.Name && (
+                <ErrorMessage>
+                  <ErrorIcon />
+                  {errors.Name}
+                </ErrorMessage>
+              )}
+            </FormGroup>
 
-          <FormGroup>
-            <Label htmlFor="supplier-email">
-              Email Address <Required>*</Required>
-            </Label>
-            <Input
-              id="supplier-email"
-              type="email"
-              value={Email}
-              onChange={handleEmailChange}
-              placeholder="supplier@example.com"
-              hasError={!!errors.email}
-            />
-            <InputHelpText>
-              Must be a valid email format
-            </InputHelpText>
-            {hasSubmitted && errors.email && (
-              <ErrorMessage>
-                <ErrorIcon />
-                {errors.email}
-              </ErrorMessage>
-            )}
-          </FormGroup>
+            <FormGroup>
+              <Label htmlFor="supplier-email">
+                Email Address <Required>*</Required>
+              </Label>
+              <Input
+                id="supplier-email"
+                type="email"
+                value={Email}
+                onChange={handleEmailChange}
+                placeholder="supplier@example.com"
+                hasError={!!errors.email}
+              />
+              <InputHelpText>
+                Must be a valid email format
+              </InputHelpText>
+              {hasSubmitted && errors.email && (
+                <ErrorMessage>
+                  <ErrorIcon />
+                  {errors.email}
+                </ErrorMessage>
+              )}
+            </FormGroup>
 
-          <FormGroup>
-            <Label htmlFor="supplier-phone">
-              Phone Number <Required>*</Required>
-            </Label>
-            <Input
-              id="supplier-phone"
-              type="tel"
-              value={Phone}
-              onChange={handlePhoneChange}
-              placeholder="Enter 10-digit phone number"
-              maxLength={10}
-              hasError={!!errors.phone_number}
-            />
-            <InputHelpText>
-              Must be exactly 10 digits
-            </InputHelpText>
-            {hasSubmitted && errors.phone_number && (
-              <ErrorMessage>
-                <ErrorIcon />
-                {errors.phone_number}
-              </ErrorMessage>
-            )}
-          </FormGroup>
+            <FormGroup>
+              <Label htmlFor="supplier-phone">
+                Phone Number <Required>*</Required>
+              </Label>
+              <Input
+                id="supplier-phone"
+                type="tel"
+                value={Phone}
+                onChange={handlePhoneChange}
+                placeholder="Enter 10-digit phone number"
+                maxLength={10}
+                hasError={!!errors.phone_number}
+              />
+              <InputHelpText>
+                Must be exactly 10 digits
+              </InputHelpText>
+              {hasSubmitted && errors.phone_number && (
+                <ErrorMessage>
+                  <ErrorIcon />
+                  {errors.phone_number}
+                </ErrorMessage>
+              )}
+            </FormGroup>
 
-          <ButtonGroup>
-            <LeftButtonGroup>
-              <DeleteButton type="button" onClick={handleDeleteClick}>
-                <DeleteIcon />
-                Delete Supplier
-              </DeleteButton>
-            </LeftButtonGroup>
-            <RightButtonGroup>
-              <CancelButton type="button" onClick={handleCancel}>
-                Cancel
-              </CancelButton>
-              <SubmitButton 
-                type="submit" 
-                disabled={!hasChanges() || !isFormValid()}
-              >
-                <SaveIcon />
-                Save Changes
-              </SubmitButton>
-            </RightButtonGroup>
-          </ButtonGroup>
-        </Form>
+            <ButtonGroup>
+              <LeftButtonGroup>
+                <DeleteButton type="button" onClick={handleDeleteClick}>
+                  <DeleteIcon />
+                  Delete Supplier
+                </DeleteButton>
+              </LeftButtonGroup>
+              <RightButtonGroup>
+                <CancelButton type="button" onClick={handleCancel}>
+                  Cancel
+                </CancelButton>
+                <SubmitButton 
+                  type="submit" 
+                  disabled={!hasChanges() || !isFormValid()}
+                >
+                  <SaveIcon />
+                  Save Changes
+                </SubmitButton>
+              </RightButtonGroup>
+            </ButtonGroup>
+          </Form>
 
-        <SaveIndicator $isVisible={showSaveIndicator}>
-          <CheckIcon />
-          Changes saved successfully
-        </SaveIndicator>
+          <SaveIndicator $isVisible={showSaveIndicator}>
+            <CheckIcon />
+            Changes saved successfully
+          </SaveIndicator>
 
-        <ErrorIndicator $isVisible={showErrorIndicator}>
-          <ErrorIcon />
-          Please fix validation errors to save changes
-        </ErrorIndicator>
-      </Content>
-    </Container>
+          <ErrorIndicator $isVisible={showErrorIndicator}>
+            <ErrorIcon />
+            Please fix validation errors to save changes
+          </ErrorIndicator>
+        </Content>
+      </Container>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+        title="Delete Supplier"
+        content="Are you sure you want to delete this supplier? This action cannot be undone and will permanently remove all associated data."
+        icon={TbTrash}
+        confirmText="Delete Supplier"
+        cancelText="Cancel"
+      />
+
+      {/* Save Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isSaveModalOpen}
+        onClose={handleSaveCancel}
+        onConfirm={handleSaveConfirm}
+        onCancel={handleSaveCancel}
+        title="Save Changes"
+        content="Are you sure you want to save these changes to the supplier? This will update the supplier information in the system."
+        icon={TbCheck}
+        confirmText="Save Changes"
+        cancelText="Cancel"
+      />
+    </>
   )
 }
