@@ -139,28 +139,24 @@ export async function createUser(
 }
 
 // --- Helper Functions (Exported for Ops) ---
+// In the init_user_data function, update the table creation order and foreign keys:
 
 export function init_user_data(path: string) {
     const db = new sqlite3.Database(path);
 
     db.serialize(() => {
         db.run("PRAGMA foreign_keys = ON;");
+        
+        // Create suppliers table FIRST (referenced by multiple tables)
         db.run(`
-            CREATE TABLE IF NOT EXISTS supplier_product_pricing (
+            CREATE TABLE IF NOT EXISTS suppliers (
                 ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                SupplierID INTEGER NOT NULL,
-                ProductID INTEGER NOT NULL,
-                supplier_price REAL NOT NULL,
-                supplier_sku TEXT,
-                min_order_quantity INTEGER DEFAULT 1,
-                lead_time_days INTEGER DEFAULT 7,
-                is_active BOOLEAN DEFAULT 1,
-                last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (SupplierID) REFERENCES suppliers(ID),
-                FOREIGN KEY (ProductID) REFERENCES products(ID),
-                UNIQUE(SupplierID, ProductID)
+                Name TEXT NOT NULL,
+                phone_number TEXT,
+                email TEXT
             )
         `);
+
         db.run(`
             CREATE TABLE IF NOT EXISTS products (
                 ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -172,6 +168,46 @@ export function init_user_data(path: string) {
             )
         `);
 
+        // Create customers table
+        db.run(`
+            CREATE TABLE IF NOT EXISTS customers (
+                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                phone_number TEXT,
+                email TEXT
+            )
+        `);
+
+        // Create supplier_products table (junction table)
+        db.run(`
+            CREATE TABLE IF NOT EXISTS supplier_products (
+                SupplierID INTEGER NOT NULL,
+                ProductID INTEGER NOT NULL,
+                PRIMARY KEY (SupplierID, ProductID),
+                FOREIGN KEY (SupplierID) REFERENCES suppliers(ID) ON DELETE CASCADE,
+                FOREIGN KEY (ProductID) REFERENCES products(ID) ON DELETE CASCADE
+            )
+        `);
+
+        // Create supplier_product_pricing table AFTER supplier_products
+        db.run(`
+            CREATE TABLE IF NOT EXISTS supplier_product_pricing (
+                ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                SupplierID INTEGER NOT NULL,
+                ProductID INTEGER NOT NULL,
+                supplier_price REAL NOT NULL DEFAULT 0,
+                supplier_sku TEXT,
+                min_order_quantity INTEGER DEFAULT 1,
+                lead_time_days INTEGER DEFAULT 7,
+                is_active BOOLEAN DEFAULT 1,
+                last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (SupplierID) REFERENCES suppliers(ID) ON DELETE CASCADE,
+                FOREIGN KEY (ProductID) REFERENCES products(ID) ON DELETE CASCADE,
+                FOREIGN KEY (SupplierID, ProductID) REFERENCES supplier_products(SupplierID, ProductID) ON DELETE CASCADE,
+                UNIQUE(SupplierID, ProductID)
+            )
+        `);
+
         db.run(`
             CREATE TABLE IF NOT EXISTS inventory (
                 OrderID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -180,26 +216,7 @@ export function init_user_data(path: string) {
                 sale_price REAL NOT NULL,
                 quantity INTEGER NOT NULL,
                 expiration_date_per_batch TEXT,
-                FOREIGN KEY (ProductID) REFERENCES products(ID)
-            )
-        `);
-
-        db.run(`
-            CREATE TABLE IF NOT EXISTS suppliers (
-                ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                Name TEXT NOT NULL,
-                phone_number TEXT,
-                email TEXT
-            )
-        `);
-
-        db.run(`
-            CREATE TABLE IF NOT EXISTS supplier_products (
-                SupplierID INTEGER NOT NULL,
-                ProductID INTEGER NOT NULL,
-                PRIMARY KEY (SupplierID, ProductID),
-                FOREIGN KEY (SupplierID) REFERENCES suppliers(ID),
-                FOREIGN KEY (ProductID) REFERENCES products(ID)
+                FOREIGN KEY (ProductID) REFERENCES products(ID) ON DELETE CASCADE
             )
         `);
 
@@ -214,15 +231,6 @@ export function init_user_data(path: string) {
                 TransactionDate TEXT NOT NULL,
                 FOREIGN KEY (SupplierID) REFERENCES suppliers(ID),
                 FOREIGN KEY (CustomerID) REFERENCES customers(ID)
-            )
-        `);
-
-        db.run(`
-            CREATE TABLE IF NOT EXISTS customers (
-                ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                phone_number TEXT,
-                email TEXT
             )
         `);
 

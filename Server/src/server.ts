@@ -426,7 +426,7 @@ app.delete('/api/suppliers/:id', authenticateToken, async (req, res) => {
 });
 
 // In server.ts, replace the link endpoint:
-
+// In server.ts, update the link endpoint:
 app.post('/api/suppliers/link', authenticateToken, async (req, res) => {
   try {
     const { supplierId, productId, initialPricing } = req.body;
@@ -438,13 +438,31 @@ app.post('/api/suppliers/link', authenticateToken, async (req, res) => {
       });
     }
 
-    // Pass initial pricing data if provided
+    // Validate supplier price is provided
+    if (!initialPricing || initialPricing.supplier_price === undefined) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Supplier price is required' 
+      });
+    }
+
+    // Validate supplier price is positive
+    if (initialPricing.supplier_price < 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Supplier price cannot be negative' 
+      });
+    }
+
     await linkSupplierToProduct(req.user!.folder_hash, supplierId, productId, initialPricing);
     
     res.json({ success: true, message: 'Supplier linked to product successfully' });
   } catch (error: any) {
     console.error('Error linking supplier to product:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to link supplier to product' 
+    });
   }
 });
 

@@ -13,6 +13,8 @@ interface ConfirmModalProps {
   icon: IconType;
   confirmText?: string;
   cancelText?: string;
+  isConfirming?: boolean;
+  confirmColor?: 'primary' | 'danger' | 'success';
 }
 
 const overlayIn = keyframes`
@@ -95,8 +97,8 @@ const IconContainer = styled.div<{ color?: string }>`
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background-color: ${p => p.color || '#fef2f2'};
-  color: ${p => (p.color ? '#ffffff' : '#dc2626')};
+  background-color: ${p => p.color || '#4f46e5'};
+  color: white;
   margin-right: 1rem;
   flex-shrink: 0;
 `;
@@ -145,6 +147,11 @@ const CloseButton = styled.button`
     color: #374151;
     background-color: #f3f4f6;
   }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 const ModalBody = styled.div`
@@ -159,39 +166,96 @@ const ModalFooter = styled.div`
   padding: 0 2rem 1.5rem 2rem;
 `;
 
-const Button = styled.button<{ variant: 'primary' | 'secondary' | 'danger' }>`
+const Button = styled.button<{ 
+  variant: 'primary' | 'secondary' | 'danger' | 'success';
+  isLoading?: boolean;
+}>`
   padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.875rem;
-  cursor: pointer;
+  cursor: ${props => props.isLoading ? 'wait' : 'pointer'};
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  position: relative;
+  min-width: 100px;
 
   ${p => p.variant === 'primary' && css`
-    background: #4f46e5;
+    background: ${p.isLoading ? '#6d67e4' : '#4f46e5'};
     color: white;
-    &:hover { background: #4338ca; transform: translateY(-1px); }
+    &:hover:not(:disabled) { 
+      background: ${p.isLoading ? '#6d67e4' : '#4338ca'}; 
+      transform: ${p.isLoading ? 'none' : 'translateY(-1px)'}; 
+    }
+    &:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
   `}
 
   ${p => p.variant === 'secondary' && css`
     background: white;
     color: #374151;
     border: 1px solid #d1d5db;
-    &:hover { background: #f9fafb; border-color: #9ca3af; }
+    &:hover:not(:disabled) { 
+      background: #f9fafb; 
+      border-color: #9ca3af; 
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   `}
 
   ${p => p.variant === 'danger' && css`
-    background: #dc2626;
+    background: ${p.isLoading ? '#e04444' : '#dc2626'};
     color: white;
-    &:hover { background: #b91c1c; transform: translateY(-1px); }
+    &:hover:not(:disabled) { 
+      background: ${p.isLoading ? '#e04444' : '#b91c1c'}; 
+      transform: ${p.isLoading ? 'none' : 'translateY(-1px)'}; 
+    }
+    &:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
   `}
 
-  &:active { transform: translateY(0); }
+  ${p => p.variant === 'success' && css`
+    background: ${p.isLoading ? '#059669' : '#059669'};
+    color: white;
+    &:hover:not(:disabled) { 
+      background: ${p.isLoading ? '#059669' : '#047857'}; 
+      transform: ${p.isLoading ? 'none' : 'translateY(-1px)'}; 
+    }
+    &:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
+  `}
+
+  &:active:not(:disabled) { transform: translateY(0); }
+`;
+
+const LoadingSpinner = styled.div`
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+`;
+
+const ButtonText = styled.span<{ $isLoading?: boolean }>`
+  opacity: ${props => props.$isLoading ? 0.7 : 1};
 `;
 
 export const CloseIcon = () => <TbX size={20} />;
@@ -206,6 +270,8 @@ export default function ConfirmModal({
   icon: Icon,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
+  isConfirming = false,
+  confirmColor = 'primary'
 }: ConfirmModalProps) {
   const [isClosing, setIsClosing] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -225,7 +291,7 @@ export default function ConfirmModal({
   }, [isOpen, isVisible]);
 
   const startClosing = () => {
-    if (isClosing) return;
+    if (isClosing || isConfirming) return;
     setIsClosing(true);
     setTimeout(() => {
       setIsVisible(false);
@@ -235,19 +301,21 @@ export default function ConfirmModal({
   };
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) startClosing();
+    if (e.target === e.currentTarget && !isConfirming) startClosing();
   };
 
   const handleCancel = () => {
+    if (isConfirming) return;
     onCancel?.();
     startClosing();
   };
 
   const handleConfirm = async () => {
+    if (isConfirming) return;
     try {
       await onConfirm();
     } finally {
-      startClosing();
+      // Don't close automatically - let parent component handle closing
     }
   };
 
@@ -259,12 +327,21 @@ export default function ConfirmModal({
 
   if (!isVisible && !isClosing) return null;
 
+  const getIconColor = () => {
+    switch (confirmColor) {
+      case 'danger': return '#dc2626';
+      case 'success': return '#059669';
+      case 'primary':
+      default: return '#4f46e5';
+    }
+  };
+
   return (
     <Overlay $isOpen={isOpen} $isClosing={isClosing} onClick={handleBackdropClick}>
       <ModalContainer $isOpen={isOpen && !isClosing} $isClosing={isClosing}>
         <ModalHeader>
           <TitleSection>
-            <IconContainer>
+            <IconContainer color={getIconColor()}>
               <Icon size={24} />
             </IconContainer>
             <TextContent>
@@ -272,7 +349,7 @@ export default function ConfirmModal({
               <Content>{content}</Content>
             </TextContent>
           </TitleSection>
-          <CloseButton onClick={startClosing}>
+          <CloseButton onClick={startClosing} disabled={isConfirming}>
             <CloseIcon />
           </CloseButton>
         </ModalHeader>
@@ -280,11 +357,28 @@ export default function ConfirmModal({
         <ModalBody />
 
         <ModalFooter>
-          <Button variant="secondary" onClick={handleCancel} disabled={isClosing}>
-            {cancelText}
+          <Button 
+            variant="secondary" 
+            onClick={handleCancel} 
+            disabled={isConfirming}
+            isLoading={false}
+          >
+            <ButtonText $isLoading={false}>{cancelText}</ButtonText>
           </Button>
-          <Button variant="danger" onClick={handleConfirm} disabled={isClosing}>
-            {confirmText}
+          <Button 
+            variant={confirmColor} 
+            onClick={handleConfirm} 
+            disabled={isConfirming}
+            isLoading={isConfirming}
+          >
+            {isConfirming ? (
+              <>
+                <LoadingSpinner />
+                <ButtonText $isLoading={true}>{confirmText}</ButtonText>
+              </>
+            ) : (
+              <ButtonText $isLoading={false}>{confirmText}</ButtonText>
+            )}
           </Button>
         </ModalFooter>
       </ModalContainer>

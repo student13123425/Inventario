@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import styled from 'styled-components'
-import { TbChevronDown, TbChevronLeft, TbX, TbCheck, TbLink } from 'react-icons/tb'
+import { TbChevronDown, TbChevronLeft, TbLink, TbAlertCircle } from 'react-icons/tb'
 import type { SupplierResponse, ProductResponse } from '../../script/objects'
 import { fetchProducts, linkSupplierProduct, updateSupplierPricing } from '../../script/network'
 import { getToken } from '../../script/utils'
@@ -118,6 +118,20 @@ const ErrorMessage = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+`
+
+const ServerErrorMessage = styled.div`
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #dc2626;
+  font-size: 0.875rem;
+  font-weight: 500;
 `
 
 const DropdownContainer = styled.div`
@@ -341,11 +355,13 @@ export default function LinkProduct(props: LinkProductProps) {
   const [minOrderQuantity, setMinOrderQuantity] = useState('')
   const [leadTimeDays, setLeadTimeDays] = useState('')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isLinking, setIsLinking] = useState(false)
   const [errors, setErrors] = useState<{
     product?: string
     supplierPrice?: string
     minOrderQuantity?: string
     leadTimeDays?: string
+    server?: string
   }>({})
   const [hasSubmitted, setHasSubmitted] = useState(false)
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
@@ -410,6 +426,7 @@ export default function LinkProduct(props: LinkProductProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setHasSubmitted(true)
+    setErrors(prev => ({ ...prev, server: undefined })) // Clear server errors
 
     const formErrors = validateForm()
     setErrors(formErrors)
@@ -432,6 +449,7 @@ export default function LinkProduct(props: LinkProductProps) {
     if (!pendingLinkData || !selectedProduct) return
 
     try {
+      setIsLinking(true)
       const token = await getToken()
       if (token) {
         // First link the supplier to the product
@@ -454,17 +472,38 @@ export default function LinkProduct(props: LinkProductProps) {
           }
         )
 
+        // Notify parent component about successful linking
         props.onLinkProduct(
           pendingLinkData.productId,
           pendingLinkData.supplierPrice,
           pendingLinkData.leadTimeDays || 0
         )
+        
+        // Close the modal
+        setIsConfirmModalOpen(false)
+        
+        // Clear form data
+        setSelectedProduct(null)
+        setSupplierPrice('')
+        setSupplierSku('')
+        setMinOrderQuantity('')
+        setLeadTimeDays('')
+        setHasSubmitted(false)
+        setErrors({})
+        
+        // The form will close because parent's onLinkProduct will set setIsNewLink(false)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error linking product:', error)
+      // Show error message to user
+      setErrors(prev => ({
+        ...prev,
+        server: error.message || 'Failed to link product. Please try again.'
+      }))
+      // Keep the modal open so user can retry
+      setIsConfirmModalOpen(true)
     } finally {
-      setIsConfirmModalOpen(false)
-      setPendingLinkData(null)
+      setIsLinking(false)
     }
   }
 
@@ -566,7 +605,10 @@ export default function LinkProduct(props: LinkProductProps) {
                   Choose the product you want to link to this supplier
                 </InputHelpText>
                 {hasSubmitted && errors.product && (
-                  <ErrorMessage>{errors.product}</ErrorMessage>
+                  <ErrorMessage>
+                    <TbAlertCircle size={16} />
+                    {errors.product}
+                  </ErrorMessage>
                 )}
               </FormGroup>
 
@@ -592,7 +634,10 @@ export default function LinkProduct(props: LinkProductProps) {
                   The price at which this supplier offers the product
                 </InputHelpText>
                 {hasSubmitted && errors.supplierPrice && (
-                  <ErrorMessage>{errors.supplierPrice}</ErrorMessage>
+                  <ErrorMessage>
+                    <TbAlertCircle size={16} />
+                    {errors.supplierPrice}
+                  </ErrorMessage>
                 )}
               </FormGroup>
 
@@ -628,7 +673,10 @@ export default function LinkProduct(props: LinkProductProps) {
                   Minimum quantity required per order (optional)
                 </InputHelpText>
                 {hasSubmitted && errors.minOrderQuantity && (
-                  <ErrorMessage>{errors.minOrderQuantity}</ErrorMessage>
+                  <ErrorMessage>
+                    <TbAlertCircle size={16} />
+                    {errors.minOrderQuantity}
+                  </ErrorMessage>
                 )}
               </FormGroup>
 
@@ -651,17 +699,35 @@ export default function LinkProduct(props: LinkProductProps) {
                   Expected delivery time in days (optional)
                 </InputHelpText>
                 {hasSubmitted && errors.leadTimeDays && (
-                  <ErrorMessage>{errors.leadTimeDays}</ErrorMessage>
+                  <ErrorMessage>
+                    <TbAlertCircle size={16} />
+                    {errors.leadTimeDays}
+                  </ErrorMessage>
                 )}
               </FormGroup>
 
+              {/* Server Error Display */}
+              {errors.server && (
+                <ServerErrorMessage>
+                  <TbAlertCircle size={20} />
+                  <span>{errors.server}</span>
+                </ServerErrorMessage>
+              )}
+
               <ButtonGroup>
-                <CancelButton type="button" onClick={() => props.setIsNewLink(false)}>
+                <CancelButton 
+                  type="button" 
+                  onClick={() => props.setIsNewLink(false)}
+                  disabled={isLinking}
+                >
                   Cancel
                 </CancelButton>
-                <SubmitButton type="submit" disabled={!selectedProduct || !supplierPrice}>
+                <SubmitButton 
+                  type="submit" 
+                  disabled={!selectedProduct || !supplierPrice || isLinking}
+                >
                   <TbLink size={16} />
-                  Link Product
+                  {isLinking ? 'Linking...' : 'Link Product'}
                 </SubmitButton>
               </ButtonGroup>
             </Form>
@@ -677,8 +743,10 @@ export default function LinkProduct(props: LinkProductProps) {
         title="Link Product to Supplier"
         content={`Are you sure you want to link "${selectedProduct?.name}" to ${props.item.Name} with a supplier price of $${supplierPrice}? This will add the product to the supplier's offerings.`}
         icon={TbLink}
-        confirmText="Link Product"
+        confirmText={isLinking ? "Linking..." : "Link Product"}
         cancelText="Cancel"
+        isConfirming={isLinking}
+        confirmColor="success"
       />
     </>
   )

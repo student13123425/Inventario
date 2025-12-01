@@ -533,7 +533,26 @@ export default function EditSupplier(props: EditSupplierProps) {
 
   const handleLinkProduct = async (productId: number, supplierPrice: number, deliverySpeed: number) => {
     console.log('Linking product:', { productId, supplierPrice, deliverySpeed })
-    setIsNewLink(false)
+    
+    try {
+      // Refresh the products list after successful linking
+      setIsLoading(true);
+      const token = await getToken();
+      if (token) {
+        const result = await fetchSupplierProducts(token, props.item.ID);
+        if (result.success) {
+          setProducts(result.products);
+        } else {
+          setProductsError('Failed to load updated products');
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing products after linking:', error);
+      setProductsError('Failed to refresh products');
+    } finally {
+      setIsLoading(false);
+      setIsNewLink(false); // Close the link form
+    }
   }
 
   if (IsNewLink) 

@@ -325,7 +325,6 @@ export async function deleteSupplier(folderHash: string, id: number): Promise<vo
     });
   });
 }
-
 export async function linkSupplierToProduct(
   folderHash: string, 
   supplierId: number, 
@@ -335,6 +334,7 @@ export async function linkSupplierToProduct(
     supplier_sku?: string;
     min_order_quantity?: number;
     lead_time_days?: number;
+    is_active?: boolean;
   }
 ): Promise<void> {
   const db = await connectToUserDatabase(folderHash);
@@ -344,64 +344,112 @@ export async function linkSupplierToProduct(
       // Begin transaction
       db.run('BEGIN TRANSACTION');
       
-      // 1. Link supplier to product in supplier_products table
-      db.run(
-        'INSERT OR IGNORE INTO supplier_products (SupplierID, ProductID) VALUES (?, ?)',
-        [supplierId, productId],
-        (err) => {
+      // 1. First, verify that supplier and product exist
+      db.get('SELECT 1 FROM suppliers WHERE ID = ?', [supplierId], (err, supplierRow) => {
+        if (err) {
+          db.run('ROLLBACK', () => {
+            db.close();
+            reject(new Error(`Supplier with ID ${supplierId} not found: ${err.message}`));
+          });
+          return;
+        }
+        
+        if (!supplierRow) {
+          db.run('ROLLBACK', () => {
+            db.close();
+            reject(new Error(`Supplier with ID ${supplierId} does not exist`));
+          });
+          return;
+        }
+        
+        // 2. Verify product exists
+        db.get('SELECT 1 FROM products WHERE ID = ?', [productId], (err, productRow) => {
           if (err) {
             db.run('ROLLBACK', () => {
               db.close();
-              reject(err);
+              reject(new Error(`Product with ID ${productId} not found: ${err.message}`));
             });
             return;
           }
           
-          // 2. Create initial pricing record in supplier_product_pricing table
-          // If initialPricing is provided, use it; otherwise, set defaults
-          const pricingData = initialPricing || {
-            supplier_price: 0, // This should be required in real implementation
-            supplier_sku: null,
-            min_order_quantity: 1,
-            lead_time_days: 7,
-            is_active: true
-          };
+          if (!productRow) {
+            db.run('ROLLBACK', () => {
+              db.close();
+              reject(new Error(`Product with ID ${productId} does not exist`));
+            });
+            return;
+          }
           
+          // 3. Link supplier to product in supplier_products table
           db.run(
-            `INSERT OR REPLACE INTO supplier_product_pricing 
-             (SupplierID, ProductID, supplier_price, supplier_sku, min_order_quantity, lead_time_days, is_active, last_updated)
-             VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-            [
-              supplierId, 
-              productId, 
-              pricingData.supplier_price || 0,
-              pricingData.supplier_sku || null,
-              pricingData.min_order_quantity || 1,
-              pricingData.lead_time_days || 7,
-              pricingData.is_active !== undefined ? pricingData.is_active : true
-            ],
-            (pricingErr) => {
-              if (pricingErr) {
+            'INSERT OR IGNORE INTO supplier_products (SupplierID, ProductID) VALUES (?, ?)',
+            [supplierId, productId],
+            (err) => {
+              if (err) {
                 db.run('ROLLBACK', () => {
                   db.close();
-                  reject(pricingErr);
+                  reject(new Error(`Failed to link supplier to product: ${err.message}`));
                 });
                 return;
               }
               
-              // Commit transaction
-              db.run('COMMIT', (commitErr) => {
-                db.close();
-                if (commitErr) {
-                  reject(commitErr);
-                } else {
-                  resolve();
+              // 4. Create initial pricing record in supplier_product_pricing table
+              // Validate that supplier_price is provided
+              const supplierPrice = initialPricing?.supplier_price;
+              if (supplierPrice === undefined || supplierPrice === null) {
+                db.run('ROLLBACK', () => {
+                  db.close();
+                  reject(new Error('Supplier price is required'));
+                });
+                return;
+              }
+              
+              if (supplierPrice < 0) {
+                db.run('ROLLBACK', () => {
+                  db.close();
+                  reject(new Error('Supplier price cannot be negative'));
+                });
+                return;
+              }
+              
+              db.run(
+                `INSERT OR REPLACE INTO supplier_product_pricing 
+                 (SupplierID, ProductID, supplier_price, supplier_sku, min_order_quantity, lead_time_days, is_active, last_updated)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                [
+                  supplierId, 
+                  productId, 
+                  supplierPrice,
+                  initialPricing?.supplier_sku || null,
+                  initialPricing?.min_order_quantity || 1,
+                  initialPricing?.lead_time_days || 7,
+                  initialPricing?.is_active !== undefined ? (initialPricing.is_active ? 1 : 0) : 1
+                ],
+                (pricingErr) => {
+                  if (pricingErr) {
+                    db.run('ROLLBACK', () => {
+                      db.close();
+                      reject(new Error(`Failed to set supplier pricing: ${pricingErr.message}`));
+                    });
+                    return;
+                  }
+                  
+                  // Commit transaction
+                  db.run('COMMIT', (commitErr) => {
+                    if (commitErr) {
+                      db.close();
+                      reject(new Error(`Failed to commit transaction: ${commitErr.message}`));
+                    } else {
+                      db.close();
+                      resolve();
+                    }
+                  });
                 }
-              });
+              );
             }
           );
-        }
-      );
+        });
+      });
     });
   });
 }
