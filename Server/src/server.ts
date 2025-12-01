@@ -429,32 +429,49 @@ app.delete('/api/suppliers/:id', authenticateToken, async (req, res) => {
 // In server.ts, update the link endpoint:
 app.post('/api/suppliers/link', authenticateToken, async (req, res) => {
   try {
-    const { supplierId, productId, initialPricing } = req.body;
+    // Destructure the flat snake_case payload sent by the frontend
+    const { 
+      supplier_id, 
+      product_id, 
+      supplier_price, 
+      supplier_sku, 
+      min_order_quantity, 
+      lead_time_days, 
+      is_active 
+    } = req.body;
 
-    if (!supplierId || !productId) {
+    if (!supplier_id || !product_id) {
       return res.status(400).json({ 
         success: false, 
-        error: 'Missing required fields: supplierId, productId' 
+        error: 'Missing required fields: supplier_id, product_id' 
       });
     }
 
-    // Validate supplier price is provided
-    if (!initialPricing || initialPricing.supplier_price === undefined) {
+    // Validate supplier price
+    if (supplier_price === undefined || supplier_price === null) {
       return res.status(400).json({ 
         success: false, 
         error: 'Supplier price is required' 
       });
     }
 
-    // Validate supplier price is positive
-    if (initialPricing.supplier_price < 0) {
+    if (Number(supplier_price) < 0) {
       return res.status(400).json({ 
         success: false, 
         error: 'Supplier price cannot be negative' 
       });
     }
 
-    await linkSupplierToProduct(req.user!.folder_hash, supplierId, productId, initialPricing);
+    // Construct the pricing object expected by database_ops
+    const pricingData = {
+      supplier_price: Number(supplier_price),
+      supplier_sku,
+      min_order_quantity: min_order_quantity ? Number(min_order_quantity) : undefined,
+      lead_time_days: lead_time_days ? Number(lead_time_days) : undefined,
+      is_active
+    };
+
+    await linkSupplierToProduct(req.user!.folder_hash, supplier_id, product_id, pricingData);
     
     res.json({ success: true, message: 'Supplier linked to product successfully' });
   } catch (error: any) {
@@ -465,7 +482,6 @@ app.post('/api/suppliers/link', authenticateToken, async (req, res) => {
     });
   }
 });
-
 // Transaction management endpoints
 app.post('/api/transactions', authenticateToken, async (req, res) => {
   try {

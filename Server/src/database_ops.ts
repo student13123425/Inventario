@@ -458,10 +458,28 @@ export async function linkSupplierToProduct(
 export async function createTransaction(folderHash: string, transaction: TransactionRecord): Promise<number> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
+    // Determine CustomerID/SupplierID based on type for consistency.
+    // Sale (to public/client) uses CustomerID 1 (assuming a placeholder 'public' client is created on setup).
+    // Purchase uses SupplierID.
+    const isSupplierTransaction = transaction.TransactionType === 'Purchase';
+    const isClientSale = transaction.TransactionType === 'Sale';
+
+    const supplierId = isSupplierTransaction ? transaction.SupplierID : null;
+    // Assuming CustomerID 1 is a generic 'Public/Client' placeholder created on DB initialization.
+    const customerId = isClientSale ? 1 : null; 
+
     db.run(
-      `INSERT INTO Transactions (TransactionType, payment_type, amount, SupplierID, CustomerID, TransactionDate) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [transaction.TransactionType, transaction.payment_type, transaction.amount, transaction.SupplierID, transaction.CustomerID, transaction.TransactionDate],
+      `INSERT INTO Transactions (TransactionType, payment_type, amount, SupplierID, CustomerID, TransactionDate, notes) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        transaction.TransactionType, 
+        transaction.payment_type, 
+        transaction.amount, 
+        supplierId, 
+        customerId, 
+        transaction.TransactionDate,
+        transaction.notes || null // Added notes field
+      ],
       function (err) {
         db.close();
         if (err) reject(err);
@@ -471,21 +489,22 @@ export async function createTransaction(folderHash: string, transaction: Transac
   });
 }
 
-export async function getTransactionHistory(folderHash: string, type?: 'Purchase' | 'Sale'): Promise<TransactionRecord[]> {
+// **UPDATED** to fetch all transactions and include SupplierName for the UI
+export async function getTransactionHistory(folderHash: string): Promise<any[]> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
-    let query = 'SELECT * FROM Transactions';
-    const params = [];
-    if (type) {
-      query += ' WHERE TransactionType = ?';
-      params.push(type);
-    }
-    query += ' ORDER BY TransactionDate DESC';
-
-    db.all(query, params, (err, rows) => {
+    const query = `
+      SELECT 
+        t.*, 
+        s.Name as SupplierName
+      FROM Transactions t
+      LEFT JOIN suppliers s ON t.SupplierID = s.ID
+      ORDER BY t.TransactionDate DESC, t.ID DESC
+    `;
+    db.all(query, [], (err, rows) => {
       db.close();
       if (err) reject(err);
-      else resolve(rows as TransactionRecord[]);
+      else resolve(rows);
     });
   });
 }

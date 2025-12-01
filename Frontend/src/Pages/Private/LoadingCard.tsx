@@ -25,8 +25,10 @@ const spin = keyframes`
 const FullScreenContainer = styled.div`
   top: 0;
   left: 0;
-  width: 100vw;
+  width: 100%;
   height: 100%;
+  border-radius: 5px;
+  padding: 10px;
   background-color: #4f46e5;
   display: flex;
   flex-direction: column;

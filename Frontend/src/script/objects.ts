@@ -71,27 +71,35 @@ export interface SupplierResponse {
 }
 
 export interface LinkSupplierPayload {
-  supplierId: number;
-  productId: number;
+  supplier_id: number;
+  product_id: number;
+  supplier_price: number;
+  supplier_sku?: string;
+  min_order_quantity?: number;
+  lead_time_days?: number;
+  is_active?: boolean;
 }
 
 export interface TransactionPayload {
-  TransactionType: 'Purchase' | 'Sale';
+  TransactionType: 'Purchase' | 'Sale' | 'Deposit' | 'Withdrawal';
   payment_type: 'paid' | 'owed';
   amount: number;
   SupplierID?: number;
   CustomerID?: number;
   TransactionDate: string;
+  notes?: string;
 }
 
 export interface TransactionResponse {
   ID: number;
-  TransactionType: 'Purchase' | 'Sale';
+  TransactionType: 'Purchase' | 'Sale' | 'Deposit' | 'Withdrawal';
   payment_type: 'paid' | 'owed';
   amount: number;
   SupplierID?: number;
   CustomerID?: number;
   TransactionDate: string;
+  SupplierName?: string; // Optional helper for UI
+  notes?: string;
 }
 
 export interface LowStockAlert {
@@ -117,8 +125,6 @@ export interface ErrorResponse {
   success: boolean;
   error: string;
 }
-
-// Add these to your existing types in objects.ts
 
 export interface SupplierProductResponse {
   ID: number;

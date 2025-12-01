@@ -112,6 +112,12 @@ const EmptyState = styled.div`
   gap: 1rem;
 `
 
+const LoadingContinaer=styled.div`
+  width: 100%;
+  height: 100%;
+  flex: 1;
+`
+
 export default function ManageInventory() {
   const [products, setProducts] = useState<ProductResponse[] | null>(null);
   const [viewState, setViewState] = useState<'list' | 'buy' | 'sell'>('list');
@@ -170,7 +176,9 @@ export default function ManageInventory() {
           <CardHeader>Current Stock Levels</CardHeader>
           <ListContent>
             {products === null ? (
-              <LoadingComponent msg="Loading Inventory..." />
+              <LoadingContinaer>
+                <LoadingComponent msg="Loading Inventory..." />
+              </LoadingContinaer>
             ) : products.length === 0 ? (
               <EmptyState>
                 <TbBox size={48} />
