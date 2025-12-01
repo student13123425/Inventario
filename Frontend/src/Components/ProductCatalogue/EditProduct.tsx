@@ -1,8 +1,13 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
-import type { ProductResponse, ProductPayload } from '../../script/objects'
+import type { ProductResponse, ProductPayload, ProductSupplierResponse } from '../../script/objects'
 import { TbAlertCircle, TbCheck, TbChevronLeft, TbTrash } from 'react-icons/tb'
 import ConfirmModal from '../ConfirmModal'
+import { fetchProductSuppliers } from '../../script/network'
+import { getToken } from '../../script/utils'
+import LoadingCard from '../../Pages/Private/LoadingComponentInline'
+import LinkSupplier from './LinkSupplier'
+import SupplierLinkerComponent from './SupplierLinkerComponent'
 
 interface EditProductProps {
   item: ProductResponse
@@ -20,7 +25,7 @@ const Container = styled.div`
   overflow: hidden;
 `
 
-const Header = styled.div`
+const Header = styled.div`  
   display: flex;
   align-items: center;
   margin-bottom: 2.5rem;
@@ -75,6 +80,30 @@ const Title = styled.h1`
   flex-shrink: 0;
 `
 
+const ColumnsContainer = styled.div`
+  display: flex;
+  gap: 2rem;
+  flex: 1;
+  overflow: hidden;
+  margin-bottom: 2rem;
+`
+
+const LeftColumn = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`
+
+const RightColumn = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid #e5e7eb;
+  padding-left: 2rem;
+`
+
 const FormContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -115,6 +144,7 @@ const FormGroup = styled.div`
   flex-direction: column;
   gap: 0.5rem;
   flex-shrink: 0;
+  width: 100%;
 `
 
 const Label = styled.label`
@@ -147,6 +177,12 @@ const Input = styled.input<{ hasError?: boolean }>`
   }
 `
 
+const InputHelpText = styled.span`
+  color: #6b7280;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+`
+
 const ErrorMessage = styled.div`
   color: #dc2626;
   font-size: 0.875rem;
@@ -160,10 +196,10 @@ const ButtonGroup = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: auto;
   padding-top: 2rem;
   border-top: 1px solid #f3f4f6;
   flex-shrink: 0;
+  width: 100%;
 `
 
 const LeftButtonGroup = styled.div`
@@ -283,11 +319,35 @@ const ErrorIndicator = styled.div<{ $isVisible: boolean }>`
   flex-shrink: 0;
 `
 
-const BackIcon = () => <TbChevronLeft size={16} color="#4f46e5" />
-const CheckIcon = () => <TbCheck size={16} color="currentColor" />
-const ErrorIcon = () => <TbAlertCircle size={16} color="currentColor" />
-const SaveIcon = () => <TbCheck size={16} color="currentColor" />
-const DeleteIcon = () => <TbTrash size={16} color="currentColor" />
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  color: #6b7280;
+  font-size: 1rem;
+  height: 100%;
+`
+
+const BackIcon = () => (
+  <TbChevronLeft size={16} color="#4f46e5" />
+)
+
+const CheckIcon = () => (
+  <TbCheck size={16} color="currentColor" />
+)
+
+const ErrorIcon = () => (
+  <TbAlertCircle size={16} color="currentColor" />
+)
+
+const SaveIcon = () => (
+  <TbCheck size={16} color="currentColor" />
+)
+
+const DeleteIcon = () => (
+  <TbTrash size={16} color="currentColor" />
+)
 
 export default function EditProduct(props: EditProductProps) {
   const [name, setName] = useState(props.item.name)
@@ -301,6 +361,11 @@ export default function EditProduct(props: EditProductProps) {
     : '';
   const [expDate, setExpDate] = useState(initialDate)
 
+  const [IsNewLink, setIsNewLink] = useState<boolean>(false)
+  const [suppliers, setSuppliers] = useState<ProductSupplierResponse[]>([])
+  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [suppliersError, setSuppliersError] = useState<string | null>(null)
+  
   const [errors, setErrors] = useState<{ 
     name?: string; 
     price?: string; 
@@ -313,6 +378,34 @@ export default function EditProduct(props: EditProductProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [pendingUpdateData, setPendingUpdateData] = useState<Partial<ProductPayload> | null>(null)
+
+  // Fetch suppliers when component mounts
+  useEffect(() => {
+    const loadProductSuppliers = async () => {
+      try {
+        setIsLoading(true)
+        setSuppliersError(null)
+        const token = await getToken()
+        if (token) {
+          const result = await fetchProductSuppliers(token, props.item.ID)
+          if (result.success) {
+            setSuppliers(result.suppliers)
+          } else {
+            setSuppliersError('Failed to load product suppliers')
+          }
+        } else {
+          setSuppliersError('Authentication required')
+        }
+      } catch (error) {
+        console.error('Error fetching product suppliers:', error)
+        setSuppliersError('Failed to load product suppliers')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadProductSuppliers()
+  }, [props.item.ID])
 
   const validateForm = () => {
     const newErrors: { name?: string; price?: string; barcode?: string } = {}
@@ -400,6 +493,46 @@ export default function EditProduct(props: EditProductProps) {
     setShowErrorIndicator(false)
   }
 
+  const handleDeleteClick = () => {
+    setIsDeleteModalOpen(true)
+  }
+
+  const handleDeleteConfirm = () => {
+    props.onDelete()
+    setIsDeleteModalOpen(false)
+  }
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false)
+  }
+
+  const handleLinkSupplier = async (supplierId: number, supplierPrice: number, deliverySpeed: number) => {
+    console.log('Linking supplier:', { supplierId, supplierPrice, deliverySpeed })
+    
+    try {
+      // Refresh the suppliers list after successful linking
+      setIsLoading(true);
+      const token = await getToken();
+      if (token) {
+        const result = await fetchProductSuppliers(token, props.item.ID);
+        if (result.success) {
+          setSuppliers(result.suppliers);
+        } else {
+          setSuppliersError('Failed to load updated suppliers');
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing suppliers after linking:', error);
+      setSuppliersError('Failed to refresh suppliers');
+    } finally {
+      setIsLoading(false);
+      setIsNewLink(false); // Close the link form
+    }
+  }
+
+  if (IsNewLink) 
+    return <LinkSupplier item={props.item} setIsNewLink={setIsNewLink} onLinkSupplier={handleLinkSupplier}/>
+
   return (
     <>
       <Container>
@@ -413,121 +546,186 @@ export default function EditProduct(props: EditProductProps) {
         <Content>
           <Title>Edit Product</Title>
           
-          <FormContainer>
-            <Form onSubmit={handleSubmit}>
-              <FormGroup>
-                <Label htmlFor="product-name">Product Name <Required>*</Required></Label>
-                <Input
-                  id="product-name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  hasError={!!errors.name}
-                />
-                {hasSubmitted && errors.name && <ErrorMessage><ErrorIcon />{errors.name}</ErrorMessage>}
-              </FormGroup>
+          <ColumnsContainer>
+            {/* Left Column - Form Inputs */}
+            <LeftColumn>
+              <FormContainer>
+                <Form onSubmit={handleSubmit}>
+                  <FormGroup>
+                    <Label htmlFor="product-name">
+                      Product Name <Required>*</Required>
+                    </Label>
+                    <Input
+                      id="product-name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter product name"
+                      hasError={!!errors.name}
+                    />
+                    <InputHelpText>
+                      Name of the product
+                    </InputHelpText>
+                    {hasSubmitted && errors.name && (
+                      <ErrorMessage>
+                        <ErrorIcon />
+                        {errors.name}
+                      </ErrorMessage>
+                    )}
+                  </FormGroup>
 
-              <FormGroup>
-                <Label htmlFor="product-price">Price <Required>*</Required></Label>
-                <Input
-                  id="product-price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  hasError={!!errors.price}
-                />
-                {hasSubmitted && errors.price && <ErrorMessage><ErrorIcon />{errors.price}</ErrorMessage>}
-              </FormGroup>
+                  <FormGroup>
+                    <Label htmlFor="product-price">
+                      Price <Required>*</Required>
+                    </Label>
+                    <Input
+                      id="product-price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="0.00"
+                      hasError={!!errors.price}
+                    />
+                    <InputHelpText>
+                      Sale price of the product
+                    </InputHelpText>
+                    {hasSubmitted && errors.price && (
+                      <ErrorMessage>
+                        <ErrorIcon />
+                        {errors.price}
+                      </ErrorMessage>
+                    )}
+                  </FormGroup>
 
-              <FormGroup>
-                <Label htmlFor="product-barcode">Barcode <Required>*</Required></Label>
-                <Input
-                  id="product-barcode"
-                  type="text"
-                  value={barcode}
-                  onChange={(e) => setBarcode(e.target.value)}
-                  hasError={!!errors.barcode}
-                />
-                {hasSubmitted && errors.barcode && <ErrorMessage><ErrorIcon />{errors.barcode}</ErrorMessage>}
-              </FormGroup>
+                  <FormGroup>
+                    <Label htmlFor="product-barcode">
+                      Barcode <Required>*</Required>
+                    </Label>
+                    <Input
+                      id="product-barcode"
+                      type="text"
+                      value={barcode}
+                      onChange={(e) => setBarcode(e.target.value)}
+                      placeholder="Product barcode"
+                      hasError={!!errors.barcode}
+                    />
+                    <InputHelpText>
+                      Unique product identifier
+                    </InputHelpText>
+                    {hasSubmitted && errors.barcode && (
+                      <ErrorMessage>
+                        <ErrorIcon />
+                        {errors.barcode}
+                      </ErrorMessage>
+                    )}
+                  </FormGroup>
 
-              <FormGroup>
-                <Label htmlFor="product-origin">Nation of Origin</Label>
-                <Input
-                  id="product-origin"
-                  type="text"
-                  value={origin}
-                  onChange={(e) => setOrigin(e.target.value)}
-                  placeholder="e.g. USA"
-                />
-              </FormGroup>
+                  <FormGroup>
+                    <Label htmlFor="product-origin">
+                      Nation of Origin
+                    </Label>
+                    <Input
+                      id="product-origin"
+                      type="text"
+                      value={origin}
+                      onChange={(e) => setOrigin(e.target.value)}
+                      placeholder="e.g. USA"
+                    />
+                    <InputHelpText>
+                      Country where the product is manufactured
+                    </InputHelpText>
+                  </FormGroup>
 
-              <FormGroup>
-                <Label htmlFor="product-exp">Expiration Date</Label>
-                <Input
-                  id="product-exp"
-                  type="date"
-                  value={expDate}
-                  onChange={(e) => setExpDate(e.target.value)}
-                />
-              </FormGroup>
-            </Form>
+                  <FormGroup>
+                    <Label htmlFor="product-exp">
+                      Expiration Date
+                    </Label>
+                    <Input
+                      id="product-exp"
+                      type="date"
+                      value={expDate}
+                      onChange={(e) => setExpDate(e.target.value)}
+                    />
+                    <InputHelpText>
+                      Optional expiration date for the product
+                    </InputHelpText>
+                  </FormGroup>
+                </Form>
+              </FormContainer>
+            </LeftColumn>
 
-            <ButtonGroup>
-              <LeftButtonGroup>
-                <DeleteButton type="button" onClick={() => setIsDeleteModalOpen(true)}>
-                  <DeleteIcon />
-                  Delete Product
-                </DeleteButton>
-              </LeftButtonGroup>
-              <RightButtonGroup>
-                <CancelButton type="button" onClick={handleCancel}>Cancel</CancelButton>
-                <SubmitButton 
-                  type="submit" 
-                  disabled={!hasChanges()}
-                  onClick={handleSubmit}
-                >
-                  <SaveIcon />
-                  Save Changes
-                </SubmitButton>
-              </RightButtonGroup>
-            </ButtonGroup>
-          </FormContainer>
+            {/* Right Column - Supplier Linker Component */}
+            <RightColumn>
+              {isLoading ? (
+                <LoadingContainer>
+                  <LoadingCard msg='Loading Suppliers'/>
+                </LoadingContainer>
+              ) : suppliersError ? (
+                <LoadingContainer>Error: {suppliersError}</LoadingContainer>
+              ) : (
+                <SupplierLinkerComponent
+                  product={props.item}
+                  suppliers={suppliers}
+                  setIsNewLink={setIsNewLink}
+                />
+              )}
+            </RightColumn>
+          </ColumnsContainer>
+
+          {/* Buttons positioned under both columns */}
+          <ButtonGroup>
+            <LeftButtonGroup>
+              <DeleteButton type="button" onClick={handleDeleteClick}>
+                <DeleteIcon />
+                Delete Product
+              </DeleteButton>
+            </LeftButtonGroup>
+            <RightButtonGroup>
+              <CancelButton type="button" onClick={handleCancel}>
+                Cancel
+              </CancelButton>
+              <SubmitButton 
+                type="submit" 
+                disabled={!hasChanges()}
+                onClick={handleSubmit}
+              >
+                <SaveIcon />
+                Save Changes
+              </SubmitButton>
+            </RightButtonGroup>
+          </ButtonGroup>
 
           <SaveIndicator $isVisible={showSaveIndicator}>
-            <CheckIcon /> Changes saved successfully
+            <CheckIcon />
+            Changes saved successfully
           </SaveIndicator>
 
           <ErrorIndicator $isVisible={showErrorIndicator}>
-            <ErrorIcon /> Please fix validation errors
+            <ErrorIcon />
+            Please fix validation errors to save changes
           </ErrorIndicator>
         </Content>
       </Container>
-      
       <ConfirmModal
         isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={() => {
-          props.onDelete();
-          setIsDeleteModalOpen(false);
-        }}
-        onCancel={() => setIsDeleteModalOpen(false)}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
         title="Delete Product"
-        content="Are you sure you want to delete this product? This action cannot be undone."
+        content="Are you sure you want to delete this product? This action cannot be undone and will permanently remove all associated data."
         icon={TbTrash}
         confirmText="Delete Product"
         cancelText="Cancel"
       />
-      
       <ConfirmModal
         isOpen={isSaveModalOpen}
         onClose={handleSaveCancel}
         onConfirm={handleSaveConfirm}
         onCancel={handleSaveCancel}
         title="Save Changes"
-        content="Are you sure you want to save these changes to the product?"
+        content="Are you sure you want to save these changes to the product? This will update the product information in the system."
         icon={TbCheck}
         confirmText="Save Changes"
         cancelText="Cancel"
