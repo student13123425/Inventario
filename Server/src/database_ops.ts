@@ -7,7 +7,20 @@ import {
     Supplier, 
     TransactionRecord 
 } from './database_core.js';
-
+import {
+  SalesTrendData,
+  TopProductData,
+  InventoryTurnoverData,
+  ProfitMarginData,
+  CustomerLifetimeValue,
+  StockAlertData,
+  DailySalesData,
+  SupplierPerformance,
+  InventoryValuation,
+  PaymentAnalysis,
+  OverallAnalytics,
+  DEFAULT_ANALYTICS
+} from './objects.js';
 
 export async function createProduct(folderHash: string, product: Product): Promise<number> {
   const db = await connectToUserDatabase(folderHash);
@@ -382,6 +395,7 @@ export async function deleteSupplier(folderHash: string, id: number): Promise<vo
     });
   });
 }
+
 export async function linkSupplierToProduct(
   folderHash: string, 
   supplierId: number, 
@@ -510,6 +524,7 @@ export async function linkSupplierToProduct(
     });
   });
 }
+
 // --- Transaction & Analytics Operations ---
 
 export async function createTransaction(folderHash: string, transaction: TransactionRecord): Promise<number> {
@@ -573,18 +588,28 @@ export async function createTransaction(folderHash: string, transaction: Transac
 }
 
 // **UPDATED** to fetch all transactions and include SupplierName for the UI
-export async function getTransactionHistory(folderHash: string): Promise<any[]> {
+export async function getTransactionHistory(folderHash: string, transactionType?: 'Purchase' | 'Sale'): Promise<any[]> {
   const db = await connectToUserDatabase(folderHash);
+  
+  let query = `
+    SELECT 
+      t.*, 
+      s.Name as SupplierName
+    FROM Transactions t
+    LEFT JOIN suppliers s ON t.SupplierID = s.ID
+  `;
+  
+  const params: any[] = [];
+  
+  if (transactionType) {
+    query += ' WHERE t.TransactionType = ?';
+    params.push(transactionType);
+  }
+  
+  query += ' ORDER BY t.TransactionDate DESC, t.ID DESC';
+  
   return new Promise((resolve, reject) => {
-    const query = `
-      SELECT 
-        t.*, 
-        s.Name as SupplierName
-      FROM Transactions t
-      LEFT JOIN suppliers s ON t.SupplierID = s.ID
-      ORDER BY t.TransactionDate DESC, t.ID DESC
-    `;
-    db.all(query, [], (err, rows) => {
+    db.all(query, params, (err, rows) => {
       db.close();
       if (err) reject(err);
       else resolve(rows);
@@ -622,7 +647,7 @@ export async function deleteTransaction(folderHash: string, id: number): Promise
   });
 }
 
-export async function getLowStockAlerts(folderHash: string, threshold: number): Promise<any[]> {
+export async function getLowStockAlerts(folderHash: string, threshold: number): Promise<StockAlertData[]> {
     const db = await connectToUserDatabase(folderHash);
     return new Promise((resolve, reject) => {
         const query = `
@@ -634,8 +659,8 @@ export async function getLowStockAlerts(folderHash: string, threshold: number): 
         `;
         db.all(query, [threshold], (err, rows) => {
             db.close();
-            if(err) reject(err);
-            else resolve(rows);
+            if (err) reject(err);
+            else resolve(rows as StockAlertData[]);
         });
     });
 }
@@ -650,7 +675,7 @@ export async function getDailySalesTotal(folderHash: string, date: string): Prom
         `;
         db.get(query, [date], (err, row: {total: number}) => {
             db.close();
-            if(err) reject(err);
+            if (err) reject(err);
             else resolve(row?.total || 0);
         });
     });
@@ -826,4 +851,438 @@ export async function getTransactionsBySupplier(folderHash: string, supplierId: 
       else resolve(rows);
     });
   });
+}
+
+// ============================================
+// ADVANCED ANALYTICS FUNCTIONS
+// ============================================
+
+// Sales Trends Analytics
+export async function getSalesTrends(
+  folderHash: string, 
+  period: 'daily' | 'weekly' | 'monthly',
+  startDate: string,
+  endDate: string
+): Promise<SalesTrendData[]> {
+  const db = await connectToUserDatabase(folderHash);
+  
+  let dateFormat, interval;
+  switch (period) {
+    case 'daily':
+      dateFormat = 'date(TransactionDate)';
+      interval = 'GROUP BY date(TransactionDate)';
+      break;
+    case 'weekly':
+      dateFormat = "strftime('%Y-%W', TransactionDate)";
+      interval = 'GROUP BY strftime("%Y-%W", TransactionDate)';
+      break;
+    case 'monthly':
+      dateFormat = "strftime('%Y-%m', TransactionDate)";
+      interval = 'GROUP BY strftime("%Y-%m", TransactionDate)';
+      break;
+    default:
+      dateFormat = "strftime('%Y-%m', TransactionDate)";
+      interval = 'GROUP BY strftime("%Y-%m", TransactionDate)';
+  }
+
+  const query = `
+    SELECT 
+      ${dateFormat} as period,
+      COALESCE(SUM(amount), 0) as total_sales,
+      COUNT(*) as transaction_count
+    FROM Transactions 
+    WHERE TransactionType = 'Sale' 
+      AND TransactionDate BETWEEN ? AND ?
+    ${interval}
+    ORDER BY period
+  `;
+
+  return new Promise((resolve, reject) => {
+    db.all(query, [startDate, endDate], (err, rows) => {
+      db.close();
+      if (err) reject(err);
+      else resolve(rows as SalesTrendData[]);
+    });
+  });
+}
+
+// Top Products Analytics
+export async function getTopProducts(
+  folderHash: string, 
+  limit: number = 10,
+  startDate?: string,
+  endDate?: string
+): Promise<TopProductData[]> {
+  const db = await connectToUserDatabase(folderHash);
+  
+  const dateCondition = startDate && endDate 
+    ? 'AND sm.MovementDate BETWEEN ? AND ?' 
+    : '';
+  
+  const params = startDate && endDate 
+    ? [startDate, endDate, limit] 
+    : [limit];
+
+  const query = `
+    SELECT 
+      p.ID,
+      p.name,
+      p.product_bar_code,
+      COALESCE(SUM(sm.Quantity), 0) as total_quantity_sold,
+      COUNT(DISTINCT sm.InventoryID) as sale_occurrences,
+      COALESCE(AVG(i.sale_price), 0) as avg_sale_price,
+      COALESCE(SUM(sm.Quantity) * AVG(i.sale_price), 0) as estimated_revenue
+    FROM StockMovement sm
+    JOIN inventory i ON sm.InventoryID = i.OrderID
+    JOIN products p ON i.ProductID = p.ID
+    WHERE sm.movement_type = 'Out'
+      ${dateCondition}
+    GROUP BY p.ID
+    ORDER BY total_quantity_sold DESC
+    LIMIT ?
+  `;
+
+  return new Promise((resolve, reject) => {
+    db.all(query, params, (err, rows) => {
+      db.close();
+      if (err) reject(err);
+      else resolve(rows as TopProductData[]);
+    });
+  });
+}
+
+// Inventory Turnover Analytics
+export async function getInventoryTurnover(
+  folderHash: string,
+  productId?: number
+): Promise<InventoryTurnoverData[] | InventoryTurnoverData> {
+  const db = await connectToUserDatabase(folderHash);
+  
+  const productCondition = productId ? 'WHERE p.ID = ?' : '';
+  const params = productId ? [productId] : [];
+
+  const query = `
+    SELECT 
+      p.ID,
+      p.name,
+      COALESCE(SUM(CASE WHEN sm.movement_type = 'Out' THEN sm.Quantity ELSE 0 END), 0) as total_sold,
+      COALESCE(AVG(i.quantity), 0) as avg_inventory,
+      CASE 
+        WHEN COALESCE(AVG(i.quantity), 0) > 0 
+        THEN COALESCE(SUM(CASE WHEN sm.movement_type = 'Out' THEN sm.Quantity ELSE 0 END), 0) / AVG(i.quantity)
+        ELSE 0 
+      END as turnover_rate
+    FROM products p
+    LEFT JOIN inventory i ON p.ID = i.ProductID
+    LEFT JOIN StockMovement sm ON i.OrderID = sm.InventoryID 
+      AND sm.movement_type = 'Out'
+      AND sm.MovementDate >= date('now', '-30 days')
+    ${productCondition}
+    GROUP BY p.ID
+    ORDER BY turnover_rate DESC
+  `;
+
+  return new Promise((resolve, reject) => {
+    if (productId) {
+      db.get(query, params, (err, row) => {
+        db.close();
+        if (err) reject(err);
+        else resolve(row as InventoryTurnoverData || {
+          ID: productId,
+          name: '',
+          total_sold: 0,
+          avg_inventory: 0,
+          turnover_rate: 0
+        });
+      });
+    } else {
+      db.all(query, params, (err, rows) => {
+        db.close();
+        if (err) reject(err);
+        else resolve(rows as InventoryTurnoverData[]);
+      });
+    }
+  });
+}
+
+// Profit Margin Analytics
+export async function getProfitMargin(
+  folderHash: string,
+  startDate: string,
+  endDate: string
+): Promise<ProfitMarginData> {
+  const db = await connectToUserDatabase(folderHash);
+  
+  const query = `
+    SELECT 
+      -- Total revenue from sales
+      (SELECT COALESCE(SUM(amount), 0) 
+       FROM Transactions 
+       WHERE TransactionType = 'Sale' 
+         AND payment_type = 'paid'
+         AND TransactionDate BETWEEN ? AND ?) as total_revenue,
+      
+      -- Total cost of goods sold (COGS)
+      (SELECT COALESCE(SUM(sm.Quantity * i.purchase_price), 0)
+       FROM StockMovement sm
+       JOIN inventory i ON sm.InventoryID = i.OrderID
+       WHERE sm.movement_type = 'Out'
+         AND sm.MovementDate BETWEEN ? AND ?) as total_cogs,
+      
+      -- Gross profit
+      (SELECT COALESCE(SUM(amount), 0) 
+       FROM Transactions 
+       WHERE TransactionType = 'Sale' 
+         AND payment_type = 'paid'
+         AND TransactionDate BETWEEN ? AND ?) 
+       - 
+      (SELECT COALESCE(SUM(sm.Quantity * i.purchase_price), 0)
+       FROM StockMovement sm
+       JOIN inventory i ON sm.InventoryID = i.OrderID
+       WHERE sm.movement_type = 'Out'
+         AND sm.MovementDate BETWEEN ? AND ?) as gross_profit
+  `;
+
+  return new Promise((resolve, reject) => {
+    db.get(query, [startDate, endDate, startDate, endDate, startDate, endDate, startDate, endDate], (err, row) => {
+      db.close();
+      if (err) {
+        reject(err);
+      } else {
+        const data = row || { total_revenue: 0, total_cogs: 0, gross_profit: 0 };
+        const gross_margin = data.total_revenue > 0 
+          ? (data.gross_profit / data.total_revenue) * 100 
+          : 0;
+        
+        resolve({
+          total_revenue: data.total_revenue || 0,
+          total_cogs: data.total_cogs || 0,
+          gross_profit: data.gross_profit || 0,
+          gross_margin_percentage: parseFloat(gross_margin.toFixed(2))
+        });
+      }
+    });
+  });
+}
+
+// Customer Lifetime Value Analytics
+export async function getCustomerLifetimeValue(folderHash: string): Promise<CustomerLifetimeValue[]> {
+  const db = await connectToUserDatabase(folderHash);
+  
+  const query = `
+    SELECT 
+      c.ID,
+      c.name,
+      c.email,
+      COUNT(t.ID) as total_transactions,
+      COALESCE(SUM(t.amount), 0) as total_spent,
+      COALESCE(AVG(t.amount), 0) as avg_transaction_value,
+      MIN(t.TransactionDate) as first_purchase,
+      MAX(t.TransactionDate) as last_purchase
+    FROM customers c
+    LEFT JOIN Transactions t ON c.ID = t.CustomerID 
+      AND t.TransactionType = 'Sale'
+    WHERE c.ID != 1 -- Exclude default customer
+    GROUP BY c.ID
+    ORDER BY total_spent DESC
+  `;
+  
+  return new Promise((resolve, reject) => {
+    db.all(query, [], (err, rows) => {
+      db.close();
+      if (err) reject(err);
+      else resolve(rows as CustomerLifetimeValue[]);
+    });
+  });
+}
+
+// Supplier Performance Analytics
+export async function getSupplierPerformance(folderHash: string): Promise<SupplierPerformance[]> {
+  const db = await connectToUserDatabase(folderHash);
+  
+  const query = `
+    SELECT 
+      s.ID,
+      s.Name,
+      COUNT(t.ID) as total_purchases,
+      COALESCE(AVG(spp.lead_time_days), 7) as avg_lead_time,
+      COUNT(CASE WHEN t.TransactionDate <= date(t.TransactionDate, '+' || spp.lead_time_days || ' days') THEN 1 END) as on_time_deliveries
+    FROM suppliers s
+    LEFT JOIN Transactions t ON s.ID = t.SupplierID 
+      AND t.TransactionType = 'Purchase'
+    LEFT JOIN supplier_product_pricing spp ON s.ID = spp.SupplierID
+    GROUP BY s.ID
+    ORDER BY total_purchases DESC
+  `;
+  
+  return new Promise((resolve, reject) => {
+    db.all(query, [], (err, rows) => {
+      db.close();
+      if (err) reject(err);
+      else resolve(rows as SupplierPerformance[]);
+    });
+  });
+}
+
+// Inventory Valuation Analytics
+export async function getInventoryValuation(folderHash: string): Promise<InventoryValuation[]> {
+  const db = await connectToUserDatabase(folderHash);
+  
+  const query = `
+    SELECT 
+      p.ID as product_id,
+      p.name as product_name,
+      COALESCE(SUM(i.quantity), 0) as total_quantity,
+      COALESCE(AVG(i.purchase_price), 0) as avg_purchase_price,
+      COALESCE(SUM(i.quantity * i.purchase_price), 0) as current_value
+    FROM products p
+    LEFT JOIN inventory i ON p.ID = i.ProductID
+    GROUP BY p.ID
+    ORDER BY current_value DESC
+  `;
+  
+  return new Promise((resolve, reject) => {
+    db.all(query, [], (err, rows) => {
+      db.close();
+      if (err) reject(err);
+      else resolve(rows as InventoryValuation[]);
+    });
+  });
+}
+
+// Payment Analysis
+export async function getPaymentAnalysis(folderHash: string): Promise<PaymentAnalysis> {
+  const db = await connectToUserDatabase(folderHash);
+  
+  const query = `
+    SELECT 
+      COALESCE(SUM(CASE WHEN payment_type = 'owed' THEN amount ELSE 0 END), 0) as total_owed,
+      COALESCE(SUM(CASE WHEN payment_type = 'paid' THEN amount ELSE 0 END), 0) as total_paid,
+      COALESCE(SUM(CASE WHEN payment_type = 'owed' THEN amount ELSE 0 END), 0) as outstanding_balance
+    FROM Transactions
+  `;
+  
+  return new Promise((resolve, reject) => {
+    db.get(query, [], (err, row) => {
+      db.close();
+      if (err) reject(err);
+      else resolve(row as PaymentAnalysis || {
+        total_owed: 0,
+        total_paid: 0,
+        outstanding_balance: 0
+      });
+    });
+  });
+}
+
+// Complete User Analytics
+export async function getUserAnalytics(
+  folderHash: string,
+  userId: number,
+  shopName: string
+): Promise<OverallAnalytics> {
+  try {
+    const defaultEndDate = new Date().toISOString().split('T')[0];
+    const defaultStartDate = new Date();
+    defaultStartDate.setMonth(defaultStartDate.getMonth() - 12);
+    
+    const startDate = defaultStartDate.toISOString().split('T')[0];
+    const endDate = defaultEndDate;
+    
+    const [
+      salesTrends,
+      topProducts,
+      inventoryTurnover,
+      profitMargin,
+      lowStockAlerts,
+      dailySales,
+      customerLifetime,
+      supplierPerformance,
+      inventoryValuation,
+      paymentAnalysis
+    ] = await Promise.all([
+      getSalesTrends(folderHash, 'monthly', startDate, endDate),
+      getTopProducts(folderHash, 10, startDate, endDate),
+      getInventoryTurnover(folderHash),
+      getProfitMargin(folderHash, startDate, endDate),
+      getLowStockAlerts(folderHash, 10),
+      getDailySalesTotal(folderHash, endDate),
+      getCustomerLifetimeValue(folderHash),
+      getSupplierPerformance(folderHash),
+      getInventoryValuation(folderHash),
+      getPaymentAnalysis(folderHash)
+    ]);
+    
+    // Calculate total inventory value
+    const totalInventoryValue = inventoryValuation.reduce((sum, item) => sum + item.current_value, 0);
+    
+    // Get counts
+    const db = await connectToUserDatabase(folderHash);
+    const counts = await new Promise<{total_customers: number, total_products: number}>((resolve, reject) => {
+      db.serialize(() => {
+        db.get('SELECT COUNT(*) as total_customers FROM customers WHERE ID != 1', (err, customerRow: any) => {
+          if (err) {
+            db.close();
+            reject(err);
+            return;
+          }
+          
+          db.get('SELECT COUNT(*) as total_products FROM products', (err, productRow: any) => {
+            db.close();
+            if (err) {
+              reject(err);
+              return;
+            }
+            
+            resolve({
+              total_customers: customerRow?.total_customers || 0,
+              total_products: productRow?.total_products || 0
+            });
+          });
+        });
+      });
+    });
+    
+    return {
+      user_id: userId,
+      shop_name: shopName,
+      collection_date: new Date().toISOString(),
+      
+      // Key Metrics
+      total_inventory_value: totalInventoryValue,
+      today_sales: dailySales,
+      total_customers: counts.total_customers,
+      total_products: counts.total_products,
+      pending_payments: paymentAnalysis.outstanding_balance,
+      
+      // Sales Analytics
+      sales_trends: salesTrends,
+      top_products: topProducts,
+      
+      // Inventory Analytics
+      inventory_turnover: Array.isArray(inventoryTurnover) ? inventoryTurnover : [inventoryTurnover],
+      low_stock_alerts: lowStockAlerts,
+      inventory_valuation: inventoryValuation,
+      
+      // Financial Analytics
+      profit_margin: profitMargin,
+      daily_sales: { total: dailySales, date: endDate },
+      payment_analysis: paymentAnalysis,
+      
+      // Customer Analytics
+      customer_lifetime_value: customerLifetime,
+      
+      // Supplier Analytics
+      supplier_performance: supplierPerformance
+    };
+    
+  } catch (error) {
+    console.error(`Error generating analytics for user ${userId}:`, error);
+    return {
+      ...DEFAULT_ANALYTICS,
+      user_id: userId,
+      shop_name: shopName,
+      collection_date: new Date().toISOString()
+    };
+  }
 }

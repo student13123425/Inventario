@@ -108,6 +108,16 @@ export function getUserById(id: number): Promise<User | undefined> {
   });
 }
 
+// NEW: Get all users for statistics collection
+export function getAllUsers(): Promise<User[]> {
+  return new Promise((resolve, reject) => {
+    db.all('SELECT id, shop_name, email, folder_hash FROM users', [], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows as User[]);
+    });
+  });
+}
+
 export async function createUser(
   shopName: string,
   email: string,

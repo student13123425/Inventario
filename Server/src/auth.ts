@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import { getUserByEmail, createUser } from './database_core.js';
+import { getUserByEmail, createUser, getUserById } from './database_core.js';
 import express from 'express';
 
 const IsDebug = false;
@@ -40,8 +40,6 @@ export async function verifyTokenOwnership(token: string): Promise<{
     if (IsDebug) {
       console.log(`Token decoded for user - ID: ${decoded.id}, Email: ${decoded.email}`);
     }
-
-    const { getUserById } = await import('./database_core.js');
 
     const user = await getUserById(decoded.id);
     if (!user) {
@@ -217,4 +215,13 @@ export function getAuthenticatedUser(req: express.Request): {
     throw new Error('User not authenticated');
   }
   return req.user;
+}
+
+// NEW: Function to decode token for admin/statistics purposes
+export function decodeTokenForStats(token: string): { id: number; email: string } | null {
+  try {
+    return jwt.verify(token, jwtSecret) as { id: number; email: string };
+  } catch (error) {
+    return null;
+  }
 }
