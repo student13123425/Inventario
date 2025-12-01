@@ -10,7 +10,7 @@ import {
 } from '../../script/network';
 import { getToken } from '../../script/utils';
 import RightCard from '../../Components/Dashboard/RightCard';
-import LoadingComponent from './LoadingComponent';
+import LoadingComponent from './LoadingCard';
 
 const Container = styled.div`
   width: 100vw;

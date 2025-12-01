@@ -7,6 +7,7 @@ import ProductLinkerCompoent from "./ProductLinkerCompoent"
 import LinkProduct from './LinkProduct'
 import { fetchSupplierProducts } from '../../script/network'
 import { getToken } from '../../script/utils'
+import LoadingCard from '../../Pages/Private/LoadingComponentInline'
 
 interface EditSupplierProps {
   item: SupplierResponse
@@ -325,6 +326,7 @@ const LoadingContainer = styled.div`
   flex: 1;
   color: #6b7280;
   font-size: 1rem;
+  height: 100%;
 `
 
 const BackIcon = () => (
@@ -530,16 +532,12 @@ export default function EditSupplier(props: EditSupplierProps) {
   }
 
   const handleLinkProduct = async (productId: number, supplierPrice: number, deliverySpeed: number) => {
-    // TODO: Implement product linking logic here
     console.log('Linking product:', { productId, supplierPrice, deliverySpeed })
-    // You'll need to call an API function to link the product
-    // After successful linking, refresh the products list
     setIsNewLink(false)
   }
 
-  if (IsNewLink) {
-    return <LinkProduct onLinkProduct={handleLinkProduct} products={[]} />
-  }
+  if (IsNewLink) 
+    return <LinkProduct item={props.item} setIsNewLink={(v:boolean)=>setIsNewLink(v)} onLinkProduct={handleLinkProduct} products={[]} />
 
   return (
     <>
@@ -635,7 +633,9 @@ export default function EditSupplier(props: EditSupplierProps) {
             {/* Right Column - Product Linker Component */}
             <RightColumn>
               {isLoading ? (
-                <LoadingContainer>Loading products...</LoadingContainer>
+                <LoadingContainer>
+                  <LoadingCard msg='Loading Products'/>
+                </LoadingContainer>
               ) : productsError ? (
                 <LoadingContainer>Error: {productsError}</LoadingContainer>
               ) : (

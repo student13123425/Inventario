@@ -3,7 +3,7 @@ import styled from 'styled-components'
 import { createSupplier, deleteSupplier, fetchSuppliers, updateSupplier, fetchSupplierProducts } from '../../script/network';
 import { getToken } from '../../script/utils';
 import type { SupplierResponse, SupplierProductResponse } from '../../script/objects';
-import LoadingComponent from './LoadingComponent';
+import LoadingComponent from './LoadingCard';
 import { FaTimesCircle, FaPlus } from 'react-icons/fa';
 import SupplyerItem from '../../Components/ManageSupplyers/SupplyerItem';
 import AddSupplyer from '../../Components/ManageSupplyers/AddSupplyer';

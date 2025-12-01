@@ -3,7 +3,7 @@ import styled from 'styled-components'
 import { createProduct, deleteProduct, fetchProducts, updateProduct } from '../../script/network';
 import { getToken } from '../../script/utils';
 import type { ProductResponse, ProductPayload } from '../../script/objects';
-import LoadingComponent from './LoadingComponent';
+import LoadingComponent from './LoadingCard';
 import { FaTimesCircle, FaPlus } from 'react-icons/fa';
 import AddProduct from '../../Components/ProductCatalogue/AddProduct';
 import EditProduct from '../../Components/ProductCatalogue/EditProduct';

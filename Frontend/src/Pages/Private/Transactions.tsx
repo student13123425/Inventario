@@ -3,7 +3,7 @@ import styled from 'styled-components'
 import { fetchTransactions } from '../../script/network'
 import { getToken } from '../../script/utils'
 import type { TransactionResponse } from '../../script/objects'
-import LoadingComponent from './LoadingComponent'
+import LoadingComponent from './LoadingCard'
 
 const Container = styled.div`
   width: 100vw;
