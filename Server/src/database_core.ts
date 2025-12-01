@@ -39,7 +39,6 @@ export function initializeDatabase(): Promise<void> {
   });
 }
 
-
 export interface User {
   id: number;
   shop_name: string;
@@ -88,8 +87,8 @@ export interface TransactionRecord {
   SupplierID?: number;
   CustomerID?: number;
   TransactionDate: string;
+  notes?: string;
 }
-
 
 export function getUserByEmail(email: string): Promise<User | undefined> {
   return new Promise((resolve, reject) => {
@@ -138,9 +137,7 @@ export async function createUser(
   }
 }
 
-// --- Helper Functions (Exported for Ops) ---
-// In the init_user_data function, update the table creation order and foreign keys:
-
+// Updated init_user_data function with default customer creation
 export function init_user_data(path: string) {
     const db = new sqlite3.Database(path);
 
@@ -247,6 +244,18 @@ export function init_user_data(path: string) {
             )
         `);
 
+        // CRITICAL FIX: Create a default "Public/Client" customer for sales transactions
+        db.run(`
+            INSERT OR IGNORE INTO customers (ID, name, email, phone_number)
+            VALUES (1, 'Public/Client', 'public@client.com', 'N/A')
+        `, (err) => {
+            if (err) {
+                console.warn('Error creating default customer (might already exist):', err.message);
+            } else {
+                console.log('Default customer (Public/Client) created or already exists');
+            }
+        });
+
         // Try to add notes column to existing Transactions tables
         db.run("ALTER TABLE Transactions ADD COLUMN notes TEXT;", (err) => {
             if (err && !err.message.includes("duplicate column name")) {
@@ -265,6 +274,24 @@ export function connectToUserDatabase(folderHash: string): Promise<sqlite3.Datab
       if (err) reject(err);
       else {
         userDb.run("PRAGMA foreign_keys = ON;");
+        
+        // Verify default customer exists when connecting
+        userDb.get("SELECT 1 FROM customers WHERE ID = 1", (err, row) => {
+          if (err) {
+            console.warn('Error checking default customer:', err.message);
+          } else if (!row) {
+            // Create default customer if it doesn't exist
+            userDb.run(`
+              INSERT OR IGNORE INTO customers (ID, name, email, phone_number)
+              VALUES (1, 'Public/Client', 'public@client.com', 'N/A')
+            `, (insertErr) => {
+              if (insertErr) {
+                console.warn('Error creating default customer on connection:', insertErr.message);
+              }
+            });
+          }
+        });
+        
         resolve(userDb);
       }
     });

@@ -514,35 +514,61 @@ export async function linkSupplierToProduct(
 
 export async function createTransaction(folderHash: string, transaction: TransactionRecord): Promise<number> {
   const db = await connectToUserDatabase(folderHash);
+  
   return new Promise((resolve, reject) => {
-    // Determine CustomerID/SupplierID based on type for consistency.
-    // Sale (to public/client) uses CustomerID 1 (assuming a placeholder 'public' client is created on setup).
-    // Purchase uses SupplierID.
-    const isSupplierTransaction = transaction.TransactionType === 'Purchase';
-    const isClientSale = transaction.TransactionType === 'Sale';
-
-    const supplierId = isSupplierTransaction ? transaction.SupplierID : null;
-    // Assuming CustomerID 1 is a generic 'Public/Client' placeholder created on DB initialization.
-    const customerId = isClientSale ? 1 : null; 
-
-    db.run(
-      `INSERT INTO Transactions (TransactionType, payment_type, amount, SupplierID, CustomerID, TransactionDate, notes) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        transaction.TransactionType, 
-        transaction.payment_type, 
-        transaction.amount, 
-        supplierId, 
-        customerId, 
-        transaction.TransactionDate,
-        transaction.notes || null // Added notes field
-      ],
-      function (err) {
+    // First, ensure we have a default customer
+    const ensureDefaultCustomer = (callback: (error: any, customerId: number) => void) => {
+      db.get('SELECT ID FROM customers WHERE name = ?', ['Public/Client'], (err, row: any) => {
+        if (err) return callback(err, 1);
+        
+        if (!row) {
+          // Create default customer if doesn't exist
+          db.run(
+            'INSERT INTO customers (name, email) VALUES (?, ?)',
+            ['Public/Client', 'public@client.com'],
+            function(err) {
+              if (err) callback(err, 1);
+              else callback(null, this.lastID);
+            }
+          );
+        } else {
+          callback(null, row.ID);
+        }
+      });
+    };
+    
+    ensureDefaultCustomer((err, defaultCustomerId) => {
+      if (err) {
         db.close();
-        if (err) reject(err);
-        else resolve(this.lastID);
+        return reject(err);
       }
-    );
+      
+      const isSupplierTransaction = transaction.TransactionType === 'Purchase';
+      const isClientSale = transaction.TransactionType === 'Sale';
+      
+      const supplierId = isSupplierTransaction ? transaction.SupplierID : null;
+      // Use provided CustomerID or default to public customer
+      const customerId = isClientSale ? (transaction.CustomerID || defaultCustomerId) : null;
+      
+      db.run(
+        `INSERT INTO Transactions (TransactionType, payment_type, amount, SupplierID, CustomerID, TransactionDate, notes) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          transaction.TransactionType, 
+          transaction.payment_type, 
+          transaction.amount, 
+          supplierId, 
+          customerId, 
+          transaction.TransactionDate,
+          transaction.notes || null
+        ],
+        function (err) {
+          db.close();
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
   });
 }
 

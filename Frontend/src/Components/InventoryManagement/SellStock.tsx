@@ -103,7 +103,7 @@ export default function SellStock({ onClose, onSuccess }: SellStockProps) {
     setSelectedProduct(prod || null);
   }
 
-  const handleSale = async () => {
+    const handleSale = async () => {
     if (!selectedProduct) return;
     const token = await getToken();
     if (!token) return;
@@ -120,7 +120,8 @@ export default function SellStock({ onClose, onSuccess }: SellStockProps) {
         TransactionType: 'Sale',
         payment_type: 'paid',
         amount: selectedProduct.price * quantity,
-        TransactionDate: new Date().toISOString()
+        TransactionDate: new Date().toISOString(),
+        CustomerID: 1  // Add this line
       });
 
       setIsConfirmOpen(false);
