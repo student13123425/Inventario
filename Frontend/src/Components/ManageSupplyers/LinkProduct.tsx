@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import styled from 'styled-components'
 import { TbChevronDown, TbChevronLeft, TbLink, TbAlertCircle } from 'react-icons/tb'
-import type { SupplierResponse, ProductResponse } from '../../script/objects'
+import type { SupplierResponse, ProductResponse, LinkSupplierPayload } from '../../script/objects'
 import { fetchProducts, linkSupplierProduct, updateSupplierPricing } from '../../script/network'
 import { getToken } from '../../script/utils'
 import LoadingCard from '../../Pages/Private/LoadingCard'
@@ -452,13 +452,17 @@ export default function LinkProduct(props: LinkProductProps) {
       setIsLinking(true)
       const token = await getToken()
       if (token) {
-        // First link the supplier to the product
-        await linkSupplierProduct(token, {
-          supplierId: props.item.ID,
-          productId: pendingLinkData.productId
-        })
+        const payload: LinkSupplierPayload = {
+          supplier_id: props.item.ID,
+          product_id: selectedProduct.ID,
+          supplier_price: Number(supplierPrice),
+          supplier_sku: supplierSku || undefined,
+          min_order_quantity: minOrderQuantity ? Number(minOrderQuantity) : undefined,
+          lead_time_days: leadTimeDays ? Number(leadTimeDays) : undefined,
+          is_active: true,
+        };
+        await linkSupplierProduct(token, payload)
 
-        // Then update the pricing information
         await updateSupplierPricing(
           token,
           props.item.ID,

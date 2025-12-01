@@ -220,15 +220,17 @@ export function init_user_data(path: string) {
             )
         `);
 
+        // UPDATED: Transactions table with notes column and updated TransactionType check
         db.run(`
             CREATE TABLE IF NOT EXISTS Transactions (
                 ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                TransactionType TEXT NOT NULL CHECK (TransactionType IN ('Purchase', 'Sale')),
+                TransactionType TEXT NOT NULL CHECK (TransactionType IN ('Purchase', 'Sale', 'Deposit', 'Withdrawal')),
                 payment_type TEXT NOT NULL CHECK (payment_type IN ('paid', 'owed')),
                 amount REAL NOT NULL,
                 SupplierID INTEGER,
                 CustomerID INTEGER,
                 TransactionDate TEXT NOT NULL,
+                notes TEXT,
                 FOREIGN KEY (SupplierID) REFERENCES suppliers(ID),
                 FOREIGN KEY (CustomerID) REFERENCES customers(ID)
             )
@@ -244,6 +246,13 @@ export function init_user_data(path: string) {
                 FOREIGN KEY (InventoryID) REFERENCES inventory(OrderID)
             )
         `);
+
+        // Try to add notes column to existing Transactions tables
+        db.run("ALTER TABLE Transactions ADD COLUMN notes TEXT;", (err) => {
+            if (err && !err.message.includes("duplicate column name")) {
+                console.warn("Could not add notes column (might already exist):", err.message);
+            }
+        });
     });
 
     db.close();
