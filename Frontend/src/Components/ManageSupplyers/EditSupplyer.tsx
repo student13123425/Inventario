@@ -537,7 +537,7 @@ export default function EditSupplier(props: EditSupplierProps) {
   }
 
   if (IsNewLink) 
-    return <LinkProduct item={props.item} setIsNewLink={(v:boolean)=>setIsNewLink(v)} onLinkProduct={handleLinkProduct} products={[]} />
+    return <LinkProduct item={props.item} setIsNewLink={setIsNewLink} onLinkProduct={handleLinkProduct}/>
 
   return (
     <>

@@ -326,21 +326,85 @@ export async function deleteSupplier(folderHash: string, id: number): Promise<vo
   });
 }
 
-export async function linkSupplierToProduct(folderHash: string, supplierId: number, productId: number): Promise<void> {
-    const db = await connectToUserDatabase(folderHash);
-    return new Promise((resolve, reject) => {
-        db.run(
-            'INSERT OR IGNORE INTO supplier_products (SupplierID, ProductID) VALUES (?, ?)',
-            [supplierId, productId],
-            (err) => {
+export async function linkSupplierToProduct(
+  folderHash: string, 
+  supplierId: number, 
+  productId: number,
+  initialPricing?: {
+    supplier_price?: number;
+    supplier_sku?: string;
+    min_order_quantity?: number;
+    lead_time_days?: number;
+  }
+): Promise<void> {
+  const db = await connectToUserDatabase(folderHash);
+  
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      // Begin transaction
+      db.run('BEGIN TRANSACTION');
+      
+      // 1. Link supplier to product in supplier_products table
+      db.run(
+        'INSERT OR IGNORE INTO supplier_products (SupplierID, ProductID) VALUES (?, ?)',
+        [supplierId, productId],
+        (err) => {
+          if (err) {
+            db.run('ROLLBACK', () => {
+              db.close();
+              reject(err);
+            });
+            return;
+          }
+          
+          // 2. Create initial pricing record in supplier_product_pricing table
+          // If initialPricing is provided, use it; otherwise, set defaults
+          const pricingData = initialPricing || {
+            supplier_price: 0, // This should be required in real implementation
+            supplier_sku: null,
+            min_order_quantity: 1,
+            lead_time_days: 7,
+            is_active: true
+          };
+          
+          db.run(
+            `INSERT OR REPLACE INTO supplier_product_pricing 
+             (SupplierID, ProductID, supplier_price, supplier_sku, min_order_quantity, lead_time_days, is_active, last_updated)
+             VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+            [
+              supplierId, 
+              productId, 
+              pricingData.supplier_price || 0,
+              pricingData.supplier_sku || null,
+              pricingData.min_order_quantity || 1,
+              pricingData.lead_time_days || 7,
+              pricingData.is_active !== undefined ? pricingData.is_active : true
+            ],
+            (pricingErr) => {
+              if (pricingErr) {
+                db.run('ROLLBACK', () => {
+                  db.close();
+                  reject(pricingErr);
+                });
+                return;
+              }
+              
+              // Commit transaction
+              db.run('COMMIT', (commitErr) => {
                 db.close();
-                if(err) reject(err);
-                else resolve();
+                if (commitErr) {
+                  reject(commitErr);
+                } else {
+                  resolve();
+                }
+              });
             }
-        )
+          );
+        }
+      );
     });
+  });
 }
-
 // --- Transaction & Analytics Operations ---
 
 export async function createTransaction(folderHash: string, transaction: TransactionRecord): Promise<number> {

@@ -425,9 +425,11 @@ app.delete('/api/suppliers/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// In server.ts, replace the link endpoint:
+
 app.post('/api/suppliers/link', authenticateToken, async (req, res) => {
   try {
-    const { supplierId, productId } = req.body;
+    const { supplierId, productId, initialPricing } = req.body;
 
     if (!supplierId || !productId) {
       return res.status(400).json({ 
@@ -436,7 +438,9 @@ app.post('/api/suppliers/link', authenticateToken, async (req, res) => {
       });
     }
 
-    await linkSupplierToProduct(req.user!.folder_hash, supplierId, productId);
+    // Pass initial pricing data if provided
+    await linkSupplierToProduct(req.user!.folder_hash, supplierId, productId, initialPricing);
+    
     res.json({ success: true, message: 'Supplier linked to product successfully' });
   } catch (error: any) {
     console.error('Error linking supplier to product:', error);

@@ -236,14 +236,34 @@ export function deleteSupplier(token: string, id: number): Promise<SuccessRespon
     });
 }
 
-export function linkSupplierProduct(token: string, payload: LinkSupplierPayload): Promise<SuccessResponse> {
-  return axiosInstance.post<SuccessResponse>('/api/suppliers/link', payload, { headers: getHeaders(token) })
-    .then(response => response.data)
-    .catch(error => {
-      throw new Error('Failed to link supplier');
-    });
-}
+export async function linkSupplierProduct(
+  token: string,
+  data: {
+    supplierId: number;
+    productId: number;
+    initialPricing?: {
+      supplier_price?: number;
+      supplier_sku?: string;
+      min_order_quantity?: number;
+      lead_time_days?: number;
+    }
+  }
+) {
+  const response = await fetch(`${base_url}/suppliers/link`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(data)
+  });
 
+  if (!response.ok) {
+    throw new Error('Failed to link supplier to product');
+  }
+
+  return await response.json();
+}
 // ==========================================
 // Transactions
 // ==========================================
