@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import type { SupplierProductResponse, SupplierResponse } from '../../script/objects';
 import styled from 'styled-components';
 import { FaTimesCircle, FaPlus } from 'react-icons/fa';
+import { unlinkSupplierProduct } from '../../script/network';
+import { getToken } from '../../script/utils';
 
 const Container = styled.div`
   width: 100%;
@@ -250,8 +252,15 @@ const AddIcon = styled(FaPlus)`
   font-size: 1rem;
 `
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-export default function ProductLinkerComponent(props: { products: SupplierProductResponse[], supplier: SupplierResponse,setIsNewLink:Function}) {
+interface ProductLinkerComponentProps {
+  products: SupplierProductResponse[];
+  supplier: SupplierResponse;
+  setIsNewLink: (value: boolean) => void;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+  ForceReload: Function;
+}
+
+export default function ProductLinkerComponent(props: ProductLinkerComponentProps) {
     const IsEmpty = props.products.length === 0;
 
     if (IsEmpty) {
@@ -307,7 +316,17 @@ export default function ProductLinkerComponent(props: { products: SupplierProduc
                                         <ActionButton variant="primary">
                                             Edit
                                         </ActionButton>
-                                        <ActionButton variant="danger">
+                                        <ActionButton 
+                                          onClick={async () => {
+                                            let token = await getToken();
+                                            if (token == null) {
+                                              return;
+                                            }
+                                            await unlinkSupplierProduct(token, props.supplier.ID, product.ID);
+                                            await props.ForceReload();
+                                          }} 
+                                          variant="danger"
+                                        >
                                             Remove
                                         </ActionButton>
                                     </ProductActions>

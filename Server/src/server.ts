@@ -35,7 +35,8 @@ import {
   getSuppliersByProduct,
   getAllSupplierProductLinks,
   getProductsBySupplier,
-  updateSupplierProductPricing
+  updateSupplierProductPricing,
+  unlinkSupplierFromProduct
 } from './database_ops.js';
 
 const app = express();
@@ -479,6 +480,33 @@ app.post('/api/suppliers/link', authenticateToken, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: error.message || 'Failed to link supplier to product' 
+    });
+  }
+});
+
+app.delete('/api/suppliers/:supplierId/products/:productId', authenticateToken, async (req, res) => {
+  try {
+    const supplierId = parseInt(req.params.supplierId);
+    const productId = parseInt(req.params.productId);
+
+    if (isNaN(supplierId) || isNaN(productId)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Invalid supplier ID or product ID' 
+      });
+    }
+
+    await unlinkSupplierFromProduct(req.user!.folder_hash, supplierId, productId);
+    
+    res.json({ 
+      success: true, 
+      message: 'Supplier unlinked from product successfully' 
+    });
+  } catch (error: any) {
+    console.error('Error unlinking supplier from product:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to unlink supplier from product' 
     });
   }
 });

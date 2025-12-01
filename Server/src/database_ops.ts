@@ -24,6 +24,63 @@ export async function createProduct(folderHash: string, product: Product): Promi
   });
 }
 
+// --- Supplier-Product Unlinking ---
+
+export async function unlinkSupplierFromProduct(
+  folderHash: string, 
+  supplierId: number, 
+  productId: number
+): Promise<void> {
+  const db = await connectToUserDatabase(folderHash);
+  
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.run('BEGIN TRANSACTION');
+      
+      // 1. Delete from supplier_product_pricing first (due to foreign key constraints)
+      db.run(
+        'DELETE FROM supplier_product_pricing WHERE SupplierID = ? AND ProductID = ?',
+        [supplierId, productId],
+        (pricingErr) => {
+          if (pricingErr) {
+            db.run('ROLLBACK', () => {
+              db.close();
+              reject(new Error(`Failed to remove supplier pricing: ${pricingErr.message}`));
+            });
+            return;
+          }
+          
+          // 2. Delete from supplier_products table
+          db.run(
+            'DELETE FROM supplier_products WHERE SupplierID = ? AND ProductID = ?',
+            [supplierId, productId],
+            (linkErr) => {
+              if (linkErr) {
+                db.run('ROLLBACK', () => {
+                  db.close();
+                  reject(new Error(`Failed to unlink supplier from product: ${linkErr.message}`));
+                });
+                return;
+              }
+              
+              // Commit transaction
+              db.run('COMMIT', (commitErr) => {
+                if (commitErr) {
+                  db.close();
+                  reject(new Error(`Failed to commit transaction: ${commitErr.message}`));
+                } else {
+                  db.close();
+                  resolve();
+                }
+              });
+            }
+          );
+        }
+      );
+    });
+  });
+}
+
 export async function getProductByBarcode(folderHash: string, barcode: string): Promise<Product | undefined> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {

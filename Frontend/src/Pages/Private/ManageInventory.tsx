@@ -177,7 +177,7 @@ export default function ManageInventory() {
           <ListContent>
             {products === null ? (
               <LoadingContinaer>
-                <LoadingComponent msg="Loading Inventory..." />
+              <LoadingComponent msg="Loading Inventory..." />
               </LoadingContinaer>
             ) : products.length === 0 ? (
               <EmptyState>

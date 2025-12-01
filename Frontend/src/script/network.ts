@@ -268,6 +268,25 @@ export function fetchTransactions(token: string, type?: 'Purchase' | 'Sale'): Pr
     });
 }
 
+export function unlinkSupplierProduct(
+  token: string, 
+  supplierId: number, 
+  productId: number
+): Promise<SuccessResponse> {
+  return axiosInstance.delete<SuccessResponse>(
+    `/api/suppliers/${supplierId}/products/${productId}`, 
+    { headers: getHeaders(token) }
+  )
+    .then(response => response.data)
+    .catch(error => {
+      if (axios.isAxiosError(error) && error.response) {
+        const data = error.response.data as { success: boolean; error: string };
+        throw new Error(data.error || 'Failed to unlink supplier from product');
+      }
+      throw new Error('Failed to unlink supplier from product');
+    });
+}
+
 export function updateTransaction(token: string, id: number, payload: Partial<TransactionPayload>): Promise<SuccessResponse> {
   return axiosInstance.put<SuccessResponse>(`/api/transactions/${id}`, payload, { headers: getHeaders(token) })
     .then(response => response.data)

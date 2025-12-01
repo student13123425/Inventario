@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import type { ProductResponse, ProductPayload, ProductSupplierResponse } from '../../script/objects'
-import { TbAlertCircle, TbCheck, TbChevronLeft, TbTrash } from 'react-icons/tb'
+import { TbAlertCircle, TbCheck, TbChevronLeft, TbTrash, TbUnlink } from 'react-icons/tb'
 import ConfirmModal from '../ConfirmModal'
 import { fetchProductSuppliers } from '../../script/network'
 import { getToken } from '../../script/utils'
 import LoadingCard from '../../Pages/Private/LoadingComponentInline'
 import LinkSupplier from './LinkSupplier'
 import SupplierLinkerComponent from './SupplierLinkerComponent'
+import { unlinkSupplierProduct } from '../../script/network'
 
 interface EditProductProps {
   item: ProductResponse
@@ -349,6 +350,30 @@ const DeleteIcon = () => (
   <TbTrash size={16} color="currentColor" />
 )
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+const loadProductSuppliers = async (setIsLoading:Function, setSuppliersError:Function, setSuppliers:Function, productId: number) => {
+  try {
+    setIsLoading(true)
+    setSuppliersError(null)
+    const token = await getToken()
+    if (token) {
+      const result = await fetchProductSuppliers(token, productId)
+      if (result.success) {
+        setSuppliers(result.suppliers)
+      } else {
+        setSuppliersError('Failed to load product suppliers')
+      }
+    } else {
+      setSuppliersError('Authentication required')
+    }
+  } catch (error) {
+    console.error('Error fetching product suppliers:', error)
+    setSuppliersError('Failed to load product suppliers')
+  } finally {
+    setIsLoading(false)
+  }
+}
+
 export default function EditProduct(props: EditProductProps) {
   const [name, setName] = useState(props.item.name)
   const [price, setPrice] = useState(props.item.price.toString())
@@ -378,33 +403,14 @@ export default function EditProduct(props: EditProductProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [pendingUpdateData, setPendingUpdateData] = useState<Partial<ProductPayload> | null>(null)
+  
+  // State for unlink modal
+  const [isUnlinkModalOpen, setIsUnlinkModalOpen] = useState(false)
+  const [supplierToUnlink, setSupplierToUnlink] = useState<ProductSupplierResponse | null>(null)
+  const [isUnlinking, setIsUnlinking] = useState(false)
 
-  // Fetch suppliers when component mounts
   useEffect(() => {
-    const loadProductSuppliers = async () => {
-      try {
-        setIsLoading(true)
-        setSuppliersError(null)
-        const token = await getToken()
-        if (token) {
-          const result = await fetchProductSuppliers(token, props.item.ID)
-          if (result.success) {
-            setSuppliers(result.suppliers)
-          } else {
-            setSuppliersError('Failed to load product suppliers')
-          }
-        } else {
-          setSuppliersError('Authentication required')
-        }
-      } catch (error) {
-        console.error('Error fetching product suppliers:', error)
-        setSuppliersError('Failed to load product suppliers')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadProductSuppliers()
+    loadProductSuppliers(setIsLoading, setSuppliersError, setSuppliers, props.item.ID)
   }, [props.item.ID])
 
   const validateForm = () => {
@@ -528,6 +534,39 @@ export default function EditProduct(props: EditProductProps) {
       setIsLoading(false);
       setIsNewLink(false); // Close the link form
     }
+  }
+
+  // Handle unlink request from SupplierLinkerComponent
+  const handleUnlinkRequest = (supplier: ProductSupplierResponse) => {
+    setSupplierToUnlink(supplier)
+    setIsUnlinkModalOpen(true)
+  }
+
+  // Handle unlink confirmation
+  const handleUnlinkConfirm = async () => {
+    if (!supplierToUnlink) return
+    
+    try {
+      setIsUnlinking(true)
+      const token = await getToken()
+      if (token) {
+        await unlinkSupplierProduct(token, supplierToUnlink.ID, props.item.ID)
+        // Refresh the suppliers list
+        await loadProductSuppliers(setIsLoading, setSuppliersError, setSuppliers, props.item.ID)
+        setIsUnlinkModalOpen(false)
+        setSupplierToUnlink(null)
+      }
+    } catch (error) {
+      console.error('Error unlinking supplier:', error)
+      // You might want to show an error message here
+    } finally {
+      setIsUnlinking(false)
+    }
+  }
+
+  const handleUnlinkCancel = () => {
+    setIsUnlinkModalOpen(false)
+    setSupplierToUnlink(null)
   }
 
   if (IsNewLink) 
@@ -666,6 +705,10 @@ export default function EditProduct(props: EditProductProps) {
                 <LoadingContainer>Error: {suppliersError}</LoadingContainer>
               ) : (
                 <SupplierLinkerComponent
+                  ForceReload={() => {
+                    loadProductSuppliers(setIsLoading, setSuppliersError, setSuppliers, props.item.ID)
+                  }}
+                  onUnlinkRequest={handleUnlinkRequest}
                   product={props.item}
                   suppliers={suppliers}
                   setIsNewLink={setIsNewLink}
@@ -708,6 +751,8 @@ export default function EditProduct(props: EditProductProps) {
           </ErrorIndicator>
         </Content>
       </Container>
+      
+      {/* Delete Product Modal */}
       <ConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={handleDeleteCancel}
@@ -718,7 +763,10 @@ export default function EditProduct(props: EditProductProps) {
         icon={TbTrash}
         confirmText="Delete Product"
         cancelText="Cancel"
+        confirmColor="danger"
       />
+      
+      {/* Save Changes Modal */}
       <ConfirmModal
         isOpen={isSaveModalOpen}
         onClose={handleSaveCancel}
@@ -729,6 +777,21 @@ export default function EditProduct(props: EditProductProps) {
         icon={TbCheck}
         confirmText="Save Changes"
         cancelText="Cancel"
+      />
+      
+      {/* Unlink Supplier Modal */}
+      <ConfirmModal
+        isOpen={isUnlinkModalOpen}
+        onClose={handleUnlinkCancel}
+        onConfirm={handleUnlinkConfirm}
+        onCancel={handleUnlinkCancel}
+        title="Unlink Supplier"
+        content={`Are you sure you want to unlink "${supplierToUnlink?.Name}" from this product? This supplier will no longer provide this product.`}
+        icon={TbUnlink}
+        confirmText="Unlink Supplier"
+        cancelText="Cancel"
+        isConfirming={isUnlinking}
+        confirmColor="danger"
       />
     </>
   )

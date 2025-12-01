@@ -80,6 +80,11 @@ export interface LinkSupplierPayload {
   is_active?: boolean;
 }
 
+export interface UnlinkSupplierPayload {
+  supplier_id: number;
+  product_id: number;
+}
+
 export interface TransactionPayload {
   TransactionType: 'Purchase' | 'Sale' | 'Deposit' | 'Withdrawal';
   payment_type: 'paid' | 'owed';

@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import type { ProductSupplierResponse, ProductResponse } from '../../script/objects';
 import styled from 'styled-components';
 import { FaTimesCircle, FaPlus } from 'react-icons/fa';
+import { unlinkSupplierProduct } from '../../script/network';
+import { getToken } from '../../script/utils';
 
 const Container = styled.div`
   width: 100%;
@@ -254,6 +256,8 @@ interface SupplierLinkerComponentProps {
   suppliers: ProductSupplierResponse[];
   product: ProductResponse;
   setIsNewLink: (value: boolean) => void;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+  ForceReload:Function
 }
 
 export default function SupplierLinkerComponent(props: SupplierLinkerComponentProps) {
@@ -312,7 +316,14 @@ export default function SupplierLinkerComponent(props: SupplierLinkerComponentPr
                                         <ActionButton variant="primary">
                                             Edit
                                         </ActionButton>
-                                        <ActionButton variant="danger">
+                                        <ActionButton onClick={async ()=>{
+                                            let token=await getToken();
+                                            if(token==null){
+                                              return;
+                                            }
+                                            await unlinkSupplierProduct(token,supplier.ID,props.product.ID)
+                                            await props.ForceReload();
+                                        }} variant="danger">
                                             Remove
                                         </ActionButton>
                                     </SupplierActions>
