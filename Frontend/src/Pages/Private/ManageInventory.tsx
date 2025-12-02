@@ -139,13 +139,24 @@ const EmptyText = styled.p`
   margin: 0;
 `
 
+// Wrapper to center the LoadingComponent on the page
+const LoadingWrapper = styled.div`
+  width: 100%;
+  height: 80vh; /* Takes up substantial page height */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
 export default function ManageInventory() {
   const [products, setProducts] = useState<ProductResponse[] | null>(null);
   const [viewState, setViewState] = useState<'list' | 'buy' | 'sell'>('list');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadInventory = async () => {
+      setIsLoading(true);
       const token = await getToken();
       if (token) {
         try {
@@ -157,6 +168,7 @@ export default function ManageInventory() {
           console.error("Failed to load inventory", e);
         }
       }
+      setIsLoading(false);
     };
     loadInventory();
   }, [refreshTrigger]);
@@ -164,6 +176,18 @@ export default function ManageInventory() {
   const handleRefresh = () => {
     setViewState('list');
     setRefreshTrigger(prev => prev + 1);
+  }
+
+  // Show loading state BEFORE checking viewState if you want full page loading 
+  // or inside the render. Here we render full page loading component.
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <LoadingWrapper>
+          <LoadingComponent msg="Syncing Inventory..." />
+        </LoadingWrapper>
+      </PageContainer>
+    );
   }
 
   if (viewState === 'buy') {
@@ -195,9 +219,8 @@ export default function ManageInventory() {
         <Card>
           <CardHeader>Current Stock Levels</CardHeader>
           <ListContent>
-            {products === null ? (
-              <LoadingComponent msg="Loading Inventory..." />
-            ) : products.length === 0 ? (
+            {/* We already handled isLoading above, so products shouldn't be null here theoretically, but safe check */}
+            {!products || products.length === 0 ? (
               <EmptyState>
                 <TbBox size={64} color="#d1d5db" />
                 <EmptyText>

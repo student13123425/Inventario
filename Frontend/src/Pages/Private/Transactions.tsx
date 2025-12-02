@@ -4,7 +4,7 @@ import { TbPlus, TbArrowUpRight, TbArrowDownLeft, TbRotate, TbBox } from 'react-
 import { fetchTransactions, fetchSuppliers } from '../../script/network';
 import { getToken } from '../../script/utils';
 import type { TransactionResponse, SupplierResponse } from '../../script/objects';
-import LoadingCard from '../../Pages/Private/LoadingComponentInline';
+import LoadingComponent from './LoadingCard';
 import AddTransactionModal from '../../Components/Transactions/AddTransactionModal';
 
 const PageContainer = styled.div`
@@ -249,6 +249,15 @@ const EmptyState = styled.div`
   text-align: center;
 `;
 
+// Wrapper for the loading component
+const LoadingWrapper = styled.div`
+  width: 100%;
+  height: 80vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
 export default function Transactions() {
   const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierResponse[]>([]);
@@ -327,6 +336,17 @@ export default function Transactions() {
     });
   };
 
+  // Show full-page loading state if data is fetching
+  if (loading) {
+    return (
+      <PageContainer>
+        <LoadingWrapper>
+          <LoadingComponent msg="Loading Financial Data..." />
+        </LoadingWrapper>
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer>
       <ContentWrapper>
@@ -349,58 +369,52 @@ export default function Transactions() {
           </ActionsRow>
         </HeaderSection>
 
-        {loading ? (
-          <div style={{height: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-            <LoadingCard msg="Loading Financial Data..." />
-          </div>
-        ) : (
-          <TableCard>
-            <TableHeader>
-              <span>Date</span>
-              <span>Type</span>
-              <span>Details (Source/Dest)</span>
-              <span>Status</span>
-              <span>Amount</span>
-              <span>Action</span>
-            </TableHeader>
-            {transactions.length === 0 ? (
-              <EmptyState>
-                <TbBox size={64} color="#d1d5db" />
-                <p>No transactions found. Create your first transaction to start tracking finances.</p>
-              </EmptyState>
-            ) : (
-              transactions.map((t) => (
-                <TableRow key={t.ID}>
-                  <span>{formatDate(t.TransactionDate)}</span>
-                  <div>
-                    <TypeBadge type={t.TransactionType}>
-                      {t.TransactionType === 'Sale' && <TbArrowDownLeft size={14} />}
-                      {t.TransactionType === 'Deposit' && <TbArrowDownLeft size={14} />}
-                      {t.TransactionType === 'Purchase' && <TbArrowUpRight size={14} />}
-                      {t.TransactionType === 'Withdrawal' && <TbArrowUpRight size={14} />}
-                      {t.TransactionType}
-                    </TypeBadge>
-                  </div>
-                  <span style={{fontWeight: 500}}>
-                    {t.TransactionType === 'Purchase' 
-                      ? (t.SupplierID ? getSupplierName(t.SupplierID) : 'General Expense') 
-                      : (t.TransactionType === 'Sale' ? 'Public Sale' : 'Operations Adjustment')}
-                  </span>
-                  <span><PaymentStatus status={t.payment_type}>{t.payment_type}</PaymentStatus></span>
-                  <Amount $isPositive={['Sale', 'Deposit'].includes(t.TransactionType)}>
-                    {['Sale', 'Deposit'].includes(t.TransactionType) ? '+' : '-'}
-                    ${Math.abs(t.amount).toFixed(2)}
-                  </Amount>
-                  <div>
-                    <CounterButton onClick={() => handleCounter(t)} title="Create inverse transaction">
-                      <TbRotate size={14} /> Counter
-                    </CounterButton>
-                  </div>
-                </TableRow>
-              ))
-            )}
-          </TableCard>
-        )}
+        <TableCard>
+          <TableHeader>
+            <span>Date</span>
+            <span>Type</span>
+            <span>Details (Source/Dest)</span>
+            <span>Status</span>
+            <span>Amount</span>
+            <span>Action</span>
+          </TableHeader>
+          {transactions.length === 0 ? (
+            <EmptyState>
+              <TbBox size={64} color="#d1d5db" />
+              <p>No transactions found. Create your first transaction to start tracking finances.</p>
+            </EmptyState>
+          ) : (
+            transactions.map((t) => (
+              <TableRow key={t.ID}>
+                <span>{formatDate(t.TransactionDate)}</span>
+                <div>
+                  <TypeBadge type={t.TransactionType}>
+                    {t.TransactionType === 'Sale' && <TbArrowDownLeft size={14} />}
+                    {t.TransactionType === 'Deposit' && <TbArrowDownLeft size={14} />}
+                    {t.TransactionType === 'Purchase' && <TbArrowUpRight size={14} />}
+                    {t.TransactionType === 'Withdrawal' && <TbArrowUpRight size={14} />}
+                    {t.TransactionType}
+                  </TypeBadge>
+                </div>
+                <span style={{fontWeight: 500}}>
+                  {t.TransactionType === 'Purchase' 
+                    ? (t.SupplierID ? getSupplierName(t.SupplierID) : 'General Expense') 
+                    : (t.TransactionType === 'Sale' ? 'Public Sale' : 'Operations Adjustment')}
+                </span>
+                <span><PaymentStatus status={t.payment_type}>{t.payment_type}</PaymentStatus></span>
+                <Amount $isPositive={['Sale', 'Deposit'].includes(t.TransactionType)}>
+                  {['Sale', 'Deposit'].includes(t.TransactionType) ? '+' : '-'}
+                  ${Math.abs(t.amount).toFixed(2)}
+                </Amount>
+                <div>
+                  <CounterButton onClick={() => handleCounter(t)} title="Create inverse transaction">
+                    <TbRotate size={14} /> Counter
+                  </CounterButton>
+                </div>
+              </TableRow>
+            ))
+          )}
+        </TableCard>
       </ContentWrapper>
       
       <AddTransactionModal
