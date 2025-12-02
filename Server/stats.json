@@ -1,0 +1,84 @@
+{
+  "timestamp": "2025-12-02T06:33:52.514Z",
+  "total_users": 1,
+  "users_analytics": [
+    {
+      "user_id": 1,
+      "shop_name": "NiceShow",
+      "collection_date": "2025-12-02T06:33:52.513Z",
+      "total_inventory_value": 0,
+      "today_sales": 0,
+      "total_customers": 0,
+      "total_products": 1,
+      "pending_payments": 0,
+      "sales_trends": [
+        {
+          "period": "2025-12",
+          "total_sales": 10000,
+          "transaction_count": 2
+        }
+      ],
+      "top_products": [
+        {
+          "ID": 1,
+          "name": "s2342314",
+          "product_bar_code": "12135234523453245235",
+          "total_quantity_sold": 9000,
+          "sale_occurrences": 1,
+          "avg_sale_price": 1,
+          "estimated_revenue": 9000
+        }
+      ],
+      "inventory_turnover": [
+        {
+          "ID": 1,
+          "name": "s2342314",
+          "total_sold": 9000,
+          "avg_inventory": 0,
+          "turnover_rate": 0
+        }
+      ],
+      "low_stock_alerts": [
+        {
+          "ID": 1,
+          "name": "s2342314",
+          "total_quantity": 0
+        }
+      ],
+      "inventory_valuation": [
+        {
+          "product_id": 1,
+          "product_name": "s2342314",
+          "total_quantity": 0,
+          "avg_purchase_price": 21.98,
+          "current_value": 0
+        }
+      ],
+      "profit_margin": {
+        "total_revenue": 10000,
+        "total_cogs": 197820,
+        "gross_profit": -187820,
+        "gross_margin_percentage": -1878.2
+      },
+      "daily_sales": {
+        "total": 0,
+        "date": "2025-12-02"
+      },
+      "payment_analysis": {
+        "total_owed": 0,
+        "total_paid": 119900,
+        "outstanding_balance": 0
+      },
+      "customer_lifetime_value": [],
+      "supplier_performance": [
+        {
+          "ID": 1,
+          "Name": "dgdsgdsh",
+          "total_purchases": 1,
+          "avg_lead_time": 7,
+          "on_time_deliveries": 0
+        }
+      ]
+    }
+  ]
+}
