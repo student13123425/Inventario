@@ -148,7 +148,7 @@ export default function InventoryItem(props: { item: ProductResponse }) {
       </MainInfo>
 
       <StatColumn hiddenOnMobile>
-        <StatLabel>Price</StatLabel>
+        <StatLabel>Sell Price</StatLabel>
         <StatValue>{formatPrice(props.item.price)}</StatValue>
       </StatColumn>
 

@@ -48,6 +48,7 @@ const Content = styled.div`
 
 const FormGroup = styled.div`
   display: flex; flex-direction: column; gap: 0.5rem;
+  width: 100%;
 `
 
 const Label = styled.label`
@@ -94,7 +95,7 @@ const StyledInput = styled.input`
 
 const GridRow = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 1rem;
 
   @media (max-width: 640px) {
@@ -278,17 +279,7 @@ export default function PurchaseStock({ onClose, onSuccess }: PurchaseStockProps
                       onChange={e => setQuantity(parseInt(e.target.value))} 
                     />
                   </FormGroup>
-                  <FormGroup>
-                    <Label>Public Selling Price ($)</Label>
-                    <StyledInput 
-                      type="number" 
-                      step="0.01" 
-                      value={salePrice} 
-                      onChange={e => setSalePrice(parseFloat(e.target.value))} 
-                    />
-                  </FormGroup>
                 </GridRow>
-                
                 <CostSummary>
                   <TotalCostLabel>Total Cost (to Supplier)</TotalCostLabel>
                   <TotalCostValue>${totalCost.toFixed(2)}</TotalCostValue>
