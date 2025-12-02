@@ -11,71 +11,122 @@ import { getToken } from '../../script/utils';
 import RightCard from '../../Components/Dashboard/RightCard';
 import LoadingComponent from './LoadingCard';
 
-const Container = styled.div`
-  width: 100vw;
-  height: 100%;
+// --- Styled Components ---
+
+const PageContainer = styled.div`
+  width: 100%;
+  min-height: 100%;
+  background-color: #f9fafb;
+  font-family: 'Inter', sans-serif;
+  padding: 2rem 5%;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `
 
-const ContainerInner = styled.div`
-  margin: auto;
-  width: 1000px;
-  max-width: 100vw;
-  display: flex;
-  padding: 1rem;
-  gap: 1rem;
-`
-
-const Side = styled.div`
-  flex: 1;
-  width: 100vh;
+const ContentWrapper = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
+  gap: 2rem;
 `
 
-const MetricCard = styled.div`
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-`
-
-const MetricTitle = styled.h3`
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 0.5rem 0;
-`
-
-const MetricValue = styled.div`
-  font-size: 2.25rem;
-  font-weight: 800;
-  color: #4f46e5;
-  margin: 0;
-`
-
-const MetricSubtitle = styled.p`
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0.5rem 0 0 0;
+const HeaderSection = styled.div`
+  margin-bottom: 1rem;
 `
 
 const SectionTitle = styled.h2`
   font-size: 2.25rem;
   font-weight: 800;
   color: #111827;
-  margin: 0 0 2rem 0;
+  margin: 0;
+  letter-spacing: -0.025em;
+
+  @media (max-width: 768px) {
+    font-size: 1.75rem;
+  }
 `
 
-const DashboardGrid = styled.div`
+const SectionSubtitle = styled.p`
+  font-size: 1.125rem;
+  color: #6b7280;
+  margin: 0.5rem 0 0 0;
+`
+
+/** * Main Grid: 
+ * Desktop: 2 columns (Metrics on left, Alert Card on right) 
+ * Tablet/Mobile: 1 column (Stacked)
+ */
+const DashboardLayout = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  align-items: start;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
 `
 
+const LeftColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`
+
+/**
+ * Metrics Grid:
+ * Auto-fits cards based on minimum width.
+ * Ensures no overflow and nice wrapping.
+ */
+const MetricsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+`
+
+const MetricCard = styled.div`
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+`
+
+const MetricTitle = styled.h3`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.5rem 0;
+`
+
+const MetricValue = styled.div`
+  font-size: 2rem;
+  font-weight: 700;
+  color: #4f46e5; /* Primary Indigo */
+  margin-bottom: 0.25rem;
+`
+
+const MetricSubtitle = styled.p`
+  font-size: 0.875rem;
+  color: #9ca3af; /* Tertiary Text */
+  margin: 0;
+`
+
+// --- Helpers ---
 
 const formatCurrency = (amount: number | null) => {
   if (amount === null) return '-';
@@ -85,85 +136,63 @@ const formatCurrency = (amount: number | null) => {
   }).format(amount);
 };
 
-/**
- * Returns [salesLast24Hours, salesLast7Days] for given transactions.
- * Only counts transactions where TransactionType === 'Sale'.
- */
 function salesLast24hAnd7d(transactions: TransactionResponse[]): [number, number] {
   const now = Date.now();
   const ms24h = 24 * 60 * 60 * 1000;
   const ms7d = 7 * ms24h;
-
   let sum24 = 0;
   let sum7 = 0;
 
   for (const t of transactions) {
     if (t.TransactionType !== 'Sale') continue;
-
     const ts = Date.parse(t.TransactionDate);
-    if (Number.isNaN(ts)) continue; // skip invalid dates
-
+    if (Number.isNaN(ts)) continue;
     const diff = now - ts;
-    // only include past transactions
     if (diff >= 0 && diff <= ms24h) {
       sum24 += t.amount;
-      sum7 += t.amount; // included in 7-day total
+      sum7 += t.amount;
     } else if (diff > ms24h && diff <= ms7d) {
       sum7 += t.amount;
     }
   }
-
   const round = (v: number) => Number(v.toFixed(2));
   return [round(sum24), round(sum7)];
 }
 
-/**
- * Returns [stockValueLast24Hours, stockValueLast30Days]
- * Counts transactions where TransactionType === 'Purchase'.
- * Sums the `amount` field (assumed to represent money spent buying stock).
- */
 function stockBoughtLast24hAnd30d(transactions: TransactionResponse[]): [number, number] {
   const now = Date.now();
   const ms24h = 24 * 60 * 60 * 1000;
   const ms30d = 30 * ms24h;
-
   let sum24 = 0;
   let sum30 = 0;
 
   for (const t of transactions) {
     if (t.TransactionType !== 'Purchase') continue;
-
     const ts = Date.parse(t.TransactionDate);
-    if (Number.isNaN(ts)) continue; // skip invalid dates
-
+    if (Number.isNaN(ts)) continue;
     const diff = now - ts;
-    if (diff < 0) continue; // skip future-dated transactions
-
+    if (diff < 0) continue;
     if (diff <= ms24h) {
       sum24 += t.amount;
-      sum30 += t.amount; // included in 30-day total
+      sum30 += t.amount;
     } else if (diff > ms24h && diff <= ms30d) {
       sum30 += t.amount;
     }
   }
-
   const round = (v: number) => Number(v.toFixed(2));
   return [round(sum24), round(sum30)];
 }
+
+// --- Component ---
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export default function DashBoard(props: { setError: Function }) {
   const [NrOfProducts, setNrOfProducts] = useState<number | null>(null);
   const [NrOfSuppliers, setNrOfSuppliers] = useState<number | null>(null);
-
-  // Sales metrics
   const [SalesLast24Hours, setSalesLast24Hours] = useState<number | null>(null);
   const [SalesLast7Days, setSalesLast7Days] = useState<number | null>(null);
-
-  // Stock (purchases) metrics
   const [StockBoughtLast24Hours, setStockBoughtLast24Hours] = useState<number | null>(null);
   const [StockBoughtLast30Days, setStockBoughtLast30Days] = useState<number | null>(null);
-
   const [LowStockAlerts, setLowStockAlerts] = useState<LowStockAlert[] | null>(null);
 
   useEffect(() => {
@@ -189,7 +218,6 @@ export default function DashBoard(props: { setError: Function }) {
       }
 
       try {
-        // fetch sale transactions and compute last 24h & last 7d
         const salesResponse = await fetchTransactions(token, 'Sale');
         const salesTxs = salesResponse.transactions || [];
         const [last24Sales, last7Sales] = salesLast24hAnd7d(salesTxs);
@@ -200,7 +228,6 @@ export default function DashBoard(props: { setError: Function }) {
       }
 
       try {
-        // fetch purchase transactions and compute stock bought last 24h & last 30d
         const purchasesResponse = await fetchTransactions(token, 'Purchase');
         const purchaseTxs = purchasesResponse.transactions || [];
         const [last24Bought, last30Bought] = stockBoughtLast24hAnd30d(purchaseTxs);
@@ -233,65 +260,59 @@ export default function DashBoard(props: { setError: Function }) {
     return <LoadingComponent msg={"Loading dashboard data..."} />
 
   return (
-    <Container>
-      <ContainerInner>
-        <Side>
+    <PageContainer>
+      <ContentWrapper>
+        <HeaderSection>
           <SectionTitle>Dashboard Overview</SectionTitle>
+          <SectionSubtitle>Real-time insights into your inventory performance.</SectionSubtitle>
+        </HeaderSection>
 
-          <DashboardGrid>
-            <MetricCard>
-              <MetricTitle>Total Products</MetricTitle>
-              <MetricValue>
-                {NrOfProducts}
-              </MetricValue>
-              <MetricSubtitle>Active products in inventory</MetricSubtitle>
-            </MetricCard>
+        <DashboardLayout>
+          {/* Left Column: Metrics */}
+          <LeftColumn>
+            <MetricsGrid>
+              <MetricCard>
+                <MetricTitle>Total Products</MetricTitle>
+                <MetricValue>{NrOfProducts}</MetricValue>
+                <MetricSubtitle>Active in inventory</MetricSubtitle>
+              </MetricCard>
 
-            <MetricCard>
-              <MetricTitle>Total Suppliers</MetricTitle>
-              <MetricValue>
-                {NrOfSuppliers}
-              </MetricValue>
-              <MetricSubtitle>Registered suppliers</MetricSubtitle>
-            </MetricCard>
+              <MetricCard>
+                <MetricTitle>Total Suppliers</MetricTitle>
+                <MetricValue>{NrOfSuppliers}</MetricValue>
+                <MetricSubtitle>Registered partners</MetricSubtitle>
+              </MetricCard>
 
-            <MetricCard>
-              <MetricTitle>Last 24 Hours Sales</MetricTitle>
-              <MetricValue>
-                {formatCurrency(SalesLast24Hours)}
-              </MetricValue>
-              <MetricSubtitle>Total revenue from the last 24 hours</MetricSubtitle>
-            </MetricCard>
+              <MetricCard>
+                <MetricTitle>Sales (24h)</MetricTitle>
+                <MetricValue>{formatCurrency(SalesLast24Hours)}</MetricValue>
+                <MetricSubtitle>Revenue today</MetricSubtitle>
+              </MetricCard>
 
-            <MetricCard>
-              <MetricTitle>Last 7 Days Sales</MetricTitle>
-              <MetricValue>
-                {formatCurrency(SalesLast7Days)}
-              </MetricValue>
-              <MetricSubtitle>Total revenue from the last 7 days</MetricSubtitle>
-            </MetricCard>
+              <MetricCard>
+                <MetricTitle>Sales (7 Days)</MetricTitle>
+                <MetricValue>{formatCurrency(SalesLast7Days)}</MetricValue>
+                <MetricSubtitle>Revenue this week</MetricSubtitle>
+              </MetricCard>
 
-            <MetricCard>
-              <MetricTitle>Stock Bought (24h)</MetricTitle>
-              <MetricValue>
-                {formatCurrency(StockBoughtLast24Hours)}
-              </MetricValue>
-              <MetricSubtitle>Money spent buying stock in the last 24 hours</MetricSubtitle>
-            </MetricCard>
+              <MetricCard>
+                <MetricTitle>Stock Bought (24h)</MetricTitle>
+                <MetricValue>{formatCurrency(StockBoughtLast24Hours)}</MetricValue>
+                <MetricSubtitle>Expenditure today</MetricSubtitle>
+              </MetricCard>
 
-            <MetricCard>
-              <MetricTitle>Stock Bought (30 days)</MetricTitle>
-              <MetricValue>
-                {formatCurrency(StockBoughtLast30Days)}
-              </MetricValue>
-              <MetricSubtitle>Money spent buying stock in the last 30 days</MetricSubtitle>
-            </MetricCard>
-          </DashboardGrid>
-        </Side>
-        <Side>
+              <MetricCard>
+                <MetricTitle>Stock Bought (30d)</MetricTitle>
+                <MetricValue>{formatCurrency(StockBoughtLast30Days)}</MetricValue>
+                <MetricSubtitle>Expenditure this month</MetricSubtitle>
+              </MetricCard>
+            </MetricsGrid>
+          </LeftColumn>
+
+          {/* Right Column: Alerts */}
           <RightCard data={LowStockAlerts} />
-        </Side>
-      </ContainerInner>
-    </Container>
+        </DashboardLayout>
+      </ContentWrapper>
+    </PageContainer>
   )
 }

@@ -1,6 +1,32 @@
+/* base */
 *{
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
-    font-family: sans-serif;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: sans-serif;
+}
+
+/* allow scrolling but hide scrollbars everywhere */
+
+/* Firefox */
+* {
+  scrollbar-width: none;        /* hides scrollbar track/thumb */
+}
+
+/* IE 10+ / Edge Legacy */
+* {
+  -ms-overflow-style: none;     /* hides scrollbar for IE/Edge */
+}
+
+/* WebKit browsers (Chrome, Safari, Opera) */
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  background: transparent;      /* optional */
+}
+
+/* ensure page can still scroll */
+html, body {
+  height: 100%;
+  overflow: auto;
 }

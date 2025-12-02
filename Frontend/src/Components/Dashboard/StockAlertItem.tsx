@@ -7,9 +7,9 @@ const Container = styled.div`
     align-items: center;
     width: 100%;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
     background-color: #ffffff;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease;
     
     &:hover {
         background-color: #f9fafb;
@@ -26,18 +26,20 @@ const ID = styled.div`
     align-items: center;
     background-color: #4f46e5;
     color: #ffffff;
-    border-radius: 50%;
+    border-radius: 8px;
     width: 2rem;
     height: 2rem;
     font-size: 0.875rem;
     font-weight: 600;
     flex-shrink: 0;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 `
 
 const Content = styled.div`
     flex: 1;
-    margin: 0 1.5rem;
-    font-size: 1rem;
+    margin: 0 1rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
     color: #111827;
     font-weight: 500;
     overflow: hidden;
@@ -45,30 +47,29 @@ const Content = styled.div`
     white-space: nowrap;
 `
 
-const Quantity = styled.div`
+const QuantityBadge = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: #fef2f2;
     color: #dc2626;
-    border-radius: 8px;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
+    border-radius: 6px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
     font-weight: 600;
     border: 1px solid #fecaca;
-    min-width: 3.125rem;
+    min-width: 3rem;
 `
 
-export default function StockAlertItem(props:{item:LowStockAlert, index:number}) {
-    const name:string = props.item.name
-    const total_quantity:number = props.item.total_quantity
+export default function StockAlertItem(props: { item: LowStockAlert, index: number }) {
+    const { name, total_quantity } = props.item;
     const nr = props.index + 1;
-    
+
     return (
         <Container>
             <ID>{nr}</ID>
             <Content>{name}</Content>
-            <Quantity>{total_quantity}</Quantity>
+            <QuantityBadge>{total_quantity} left</QuantityBadge>
         </Container>
     )
 }
