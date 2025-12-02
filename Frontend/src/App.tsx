@@ -9,7 +9,6 @@ import { checkToken } from './script/network'
 function App() {
   const [LoginToken, setLoginToken] = useState<string | null>(null)
   const [Error,setError]=useState<string|null>(null);
-  // Check for token in localStorage on mount
   useEffect(() => {
     const storedToken = localStorage.getItem('authToken');
     if (storedToken) {

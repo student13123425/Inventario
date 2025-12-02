@@ -2,6 +2,12 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import { initializeDatabase } from './database_core.js';
 import { registerUser, loginUser, authenticateToken } from './auth.js';
+import { 
+  initializeAdmin, 
+  loginAdmin, 
+  changeAdminCredentials, 
+  authenticateAdmin 
+} from './admin_auth.js';
 import cors from 'cors';
 import {
   createProduct,
@@ -73,12 +79,16 @@ declare global {
         shop_name: string;
         folder_hash: string;
       };
+      admin?: {
+        username: string;
+        role: string;
+      }
     }
   }
 }
 
 // ============================================
-// STATISTICS MANAGEMENT (PUBLIC & PRIVATE)
+// STATISTICS MANAGEMENT
 // ============================================
 
 // Function to collect and save statistics
@@ -176,13 +186,49 @@ async function triggerStatsSave(): Promise<boolean> {
   }
 }
 
-// Initialize database and start auto-save
-initializeDatabase().then(() => {
+// Initialize database, Admin system and start auto-save
+initializeDatabase().then(async () => {
   console.log('Database initialized successfully');
+  await initializeAdmin(); // Initialize Admin credentials
   startStatsCollection();
 }).catch((err) => {
-  console.error('Failed to initialize database:', err);
+  console.error('Failed to initialize:', err);
   process.exit(1);
+});
+
+// ============================================
+// ADMIN AUTHENTICATION ENDPOINTS
+// ============================================
+
+app.post('/api/admin/login', async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+        return res.status(400).json({ success: false, error: 'Username and password required' });
+    }
+    
+    const result = await loginAdmin(username, password);
+    if (result.success) {
+        res.json({ success: true, token: result.token });
+    } else {
+        const status = result.error === 'Internal server error' ? 500 : 401;
+        res.status(status).json({ success: false, error: result.error });
+    }
+});
+
+app.post('/api/admin/change-credentials', authenticateAdmin, async (req, res) => {
+    const { currentUsername, currentPassword, newUsername, newPassword } = req.body;
+    
+    if (!currentUsername || !currentPassword || !newUsername || !newPassword) {
+        return res.status(400).json({ success: false, error: 'All fields are required' });
+    }
+
+    const result = await changeAdminCredentials(currentUsername, currentPassword, newUsername, newPassword);
+    
+    if (result.success) {
+        res.json({ success: true, message: 'Admin credentials updated successfully' });
+    } else {
+        res.status(403).json({ success: false, error: result.error });
+    }
 });
 
 // ============================================
@@ -225,8 +271,12 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// PUBLIC STATISTICS ENDPOINT - No authentication required
-app.get('/api/public/stats', async (req, res) => {
+// ============================================
+// SECURED ADMIN ANALYTICS ENDPOINTS
+// ============================================
+
+// Get aggregated stats - NOW SECURED
+app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
   try {
     // Read the stats.json file
     const statsData = await fs.readFile(STATS_FILE_PATH, 'utf-8');
@@ -259,8 +309,8 @@ app.get('/api/public/stats', async (req, res) => {
   }
 });
 
-// Manual trigger for statistics collection (public for now)
-app.post('/api/public/stats/collect', async (req, res) => {
+// Manual trigger for statistics collection - NOW SECURED
+app.post('/api/admin/stats/collect', authenticateAdmin, async (req, res) => {
   try {
     const success = await triggerStatsSave();
     
@@ -286,7 +336,7 @@ app.post('/api/public/stats/collect', async (req, res) => {
   }
 });
 
-// Get server health and stats info
+// Get server health and info
 app.get('/api/public/server-info', async (req, res) => {
   try {
     let statsInfo = { exists: false, size: 0, lastModified: null };
@@ -305,7 +355,7 @@ app.get('/api/public/server-info', async (req, res) => {
     res.json({
       success: true,
       server_name: 'Inventory Management System',
-      version: '1.0.0',
+      version: '1.1.0',
       timestamp: new Date().toISOString(),
       statistics: {
         auto_save_interval_hours: AUTO_SAVE_INTERVAL_HOURS,
@@ -313,7 +363,8 @@ app.get('/api/public/server-info', async (req, res) => {
         next_auto_save: statsInterval ? 'active' : 'inactive'
       },
       endpoints: {
-        public: ['/api/register', '/api/login', '/api/public/stats', '/api/public/stats/collect'],
+        public: ['/api/register', '/api/login', '/api/public/server-info'],
+        admin: ['/api/admin/login', '/api/admin/stats', '/api/admin/stats/collect', '/api/admin/change-credentials'],
         protected: ['/api/products', '/api/inventory', '/api/customers', '/api/suppliers', '/api/transactions', '/api/analytics/*']
       }
     });
@@ -1133,8 +1184,8 @@ app.get('/api/analytics/dashboard', authenticateToken, async (req, res) => {
   }
 });
 
-// Admin endpoints for statistics management (protected)
-app.post('/api/admin/save-stats', authenticateToken, async (req, res) => {
+// Admin endpoints for statistics management - PROTECTED BY ADMIN AUTH
+app.post('/api/admin/save-stats', authenticateAdmin, async (req, res) => {
   try {
     const success = await triggerStatsSave();
     
@@ -1149,7 +1200,7 @@ app.post('/api/admin/save-stats', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/admin/stop-stats-collection', authenticateToken, async (req, res) => {
+app.post('/api/admin/stop-stats-collection', authenticateAdmin, async (req, res) => {
   try {
     stopStatsCollection();
     res.json({ success: true, message: 'Statistics collection stopped' });
@@ -1159,7 +1210,7 @@ app.post('/api/admin/stop-stats-collection', authenticateToken, async (req, res)
   }
 });
 
-app.post('/api/admin/start-stats-collection', authenticateToken, async (req, res) => {
+app.post('/api/admin/start-stats-collection', authenticateAdmin, async (req, res) => {
   try {
     const { intervalHours = 6 } = req.body;
     startStatsCollection(intervalHours);
@@ -1213,7 +1264,7 @@ process.on('SIGTERM', () => {
 // Start server
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
-  console.log(`Public stats endpoint: http://localhost:${port}/api/public/stats`);
+  console.log(`Admin stats endpoint: http://localhost:${port}/api/admin/stats`);
   console.log(`Auto-saving stats every ${AUTO_SAVE_INTERVAL_HOURS} hours`);
 });
 
