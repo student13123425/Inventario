@@ -1,9 +1,3 @@
-// objects.ts - Type definitions for Public Statistics
-
-// ============================================
-// ANALYTICS DATA TYPES (Subset for Public Stats)
-// ============================================
-
 export interface SalesTrendData {
   period: string;
   total_sales: number;
@@ -79,54 +73,54 @@ export interface PaymentAnalysis {
   outstanding_balance: number;
 }
 
-// Analytics for a single user/shop
 export interface OverallAnalytics {
   user_id: number;
   shop_name: string;
   collection_date: string;
-  
-  // Key Metrics
   total_inventory_value: number;
   today_sales: number;
   total_customers: number;
   total_products: number;
   pending_payments: number;
-  
-  // Sales Analytics
   sales_trends: SalesTrendData[];
   top_products: TopProductData[];
-  
-  // Inventory Analytics
   inventory_turnover: InventoryTurnoverData[];
   low_stock_alerts: StockAlertData[];
   inventory_valuation: InventoryValuation[];
-  
-  // Financial Analytics
   profit_margin: ProfitMarginData;
   daily_sales: DailySalesData;
   payment_analysis: PaymentAnalysis;
-  
-  // Customer Analytics
   customer_lifetime_value: CustomerLifetimeValue[];
-  
-  // Supplier Analytics
   supplier_performance: SupplierPerformance[];
 }
 
-// The main public statistics summary object
 export interface StatisticsSummary {
   timestamp: string;
   total_users: number;
   users_analytics: OverallAnalytics[];
 }
 
-// ============================================
-// API RESPONSE TYPES (Subset for Public Stats)
-// ============================================
+export interface AdminLoginCredentials {
+  username: string;
+  password: string;
+}
+
+export interface ChangeAdminCredentialsRequest {
+  currentUsername: string;
+  currentPassword: string;
+  newUsername: string;
+  newPassword: string;
+}
+
+export interface AdminLoginResponse {
+  token: string;
+  success: boolean;
+}
 
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
   message?: string;
+  token?: string;
 }
