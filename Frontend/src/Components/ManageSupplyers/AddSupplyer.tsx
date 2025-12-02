@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react' // Added useEffect
 import styled from 'styled-components'
 import { FaArrowLeft, FaSave, FaTimes } from 'react-icons/fa'
 import ConfirmModal from '../ConfirmModal'
@@ -155,6 +155,22 @@ export default function AddSupplyer({ onClose, onSubmit }: AddSupplyerProps) {
   const [errors, setErrors] = useState<{ Name?: string; phone_number?: string; email?: string }>({});
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
+  // KEYBOARD HANDLERS
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isConfirmOpen) {
+          setIsConfirmOpen(false);
+        } else {
+          onClose();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isConfirmOpen, onClose]);
+
   const validate = () => {
     const newErrors: any = {};
     if (formData.Name.length < 4) newErrors.Name = "Name must be at least 4 chars";
@@ -220,6 +236,9 @@ export default function AddSupplyer({ onClose, onSubmit }: AddSupplyerProps) {
               />
               {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
             </FormGroup>
+
+            {/* HIDDEN BUTTON to capture Enter keypress in inputs */}
+            <button type="submit" style={{ display: 'none' }} />
           </FormContent>
           <Footer>
             <Button onClick={onClose}>Cancel</Button>

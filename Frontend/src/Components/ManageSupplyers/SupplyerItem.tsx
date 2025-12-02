@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import type { SupplierProductResponse, SupplierResponse } from '../../script/objects'
 import styled from 'styled-components'
-import { MdEdit, MdPhone, MdEmail } from 'react-icons/md'
+import { MdEdit, MdPhone, MdEmail, MdDelete, MdWarning } from 'react-icons/md'
+import ConfirmModal from '../ConfirmModal'
 
 const ItemContainer = styled.div`
   display: grid;
@@ -26,7 +27,7 @@ const ItemContainer = styled.div`
     grid-template-columns: auto 1fr auto;
     gap: 1rem;
     
-    /* Hide contact info on mobile, maybe show on expand in future */
+    /* Hide contact info on mobile */
     & > div:nth-child(3), & > div:nth-child(4) {
       display: none;
     }
@@ -79,7 +80,12 @@ const ContactInfo = styled.div`
   text-overflow: ellipsis;
 `
 
-const EditBtn = styled.button`
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`
+
+const IconButton = styled.button`
   width: 2.5rem;
   height: 2.5rem;  
   display: flex;
@@ -88,13 +94,23 @@ const EditBtn = styled.button`
   background-color: transparent;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  color: #4f46e5;
   cursor: pointer;
   transition: all 0.2s ease;
-  
+`
+
+const EditBtn = styled(IconButton)`
+  color: #4f46e5;
   &:hover {
     background-color: #e0e7ff;
     border-color: #4f46e5;
+  }
+`
+
+const DeleteBtn = styled(IconButton)`
+  color: #dc2626;
+  &:hover {
+    background-color: #fee2e2;
+    border-color: #dc2626;
   }
 `
 
@@ -102,34 +118,60 @@ interface SupplyerItemProps {
   item: SupplierResponse;
   index: number;
   setEditing: (item: any) => void;
+  // Added onDelete prop to handle the actual deletion logic in parent
+  onDelete: (item: SupplierResponse) => void; 
   products: SupplierProductResponse[];
 }
 
-export default function SupplyerItem({ item, index, setEditing, products }: SupplyerItemProps) {
+export default function SupplyerItem({ item, index, setEditing, onDelete, products }: SupplyerItemProps) {
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const displayIndex = index + 1;
 
+  const handleDeleteConfirm = () => {
+    onDelete(item);
+    setIsDeleteModalOpen(false);
+  };
+
   return (
-    <ItemContainer>
-      <IndexBox>{displayIndex}</IndexBox>
-      
-      <MainInfo>
-        <SupplierName title={item.Name}>{item.Name}</SupplierName>
-        <ProductCount>{products.length} Products Linked</ProductCount>
-      </MainInfo>
+    <>
+      <ItemContainer>
+        <IndexBox>{displayIndex}</IndexBox>
+        
+        <MainInfo>
+          <SupplierName title={item.Name}>{item.Name}</SupplierName>
+          <ProductCount>{products.length} Products Linked</ProductCount>
+        </MainInfo>
 
-      <ContactInfo>
-        <MdEmail size={16} color="#9ca3af" />
-        <span title={item.email}>{item.email || 'No email'}</span>
-      </ContactInfo>
+        <ContactInfo>
+          <MdEmail size={16} color="#9ca3af" />
+          <span title={item.email}>{item.email || 'No email'}</span>
+        </ContactInfo>
 
-      <ContactInfo>
-        <MdPhone size={16} color="#9ca3af" />
-        <span>{item.phone_number || 'No phone'}</span>
-      </ContactInfo>
+        <ContactInfo>
+          <MdPhone size={16} color="#9ca3af" />
+          <span>{item.phone_number || 'No phone'}</span>
+        </ContactInfo>
 
-      <EditBtn onClick={() => setEditing(item)} title="Edit supplier">
-        <MdEdit size={18} />
-      </EditBtn>
-    </ItemContainer>
+        <ActionButtons>
+          <EditBtn onClick={() => setEditing(item)} title="Edit supplier">
+            <MdEdit size={18} />
+          </EditBtn>
+          <DeleteBtn onClick={() => setIsDeleteModalOpen(true)} title="Delete supplier">
+            <MdDelete size={18} />
+          </DeleteBtn>
+        </ActionButtons>
+      </ItemContainer>
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Supplier"
+        content={`Are you sure you want to delete ${item.Name}? This action cannot be undone.`}
+        icon={MdWarning}
+        confirmText="Delete Supplier"
+        confirmColor="danger"
+      />
+    </>
   )
 }

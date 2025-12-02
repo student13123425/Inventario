@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import type { ProductResponse } from '../../script/objects'
 import styled from 'styled-components'
-import { MdEdit } from 'react-icons/md'
+import { MdEdit, MdDelete, MdWarning } from 'react-icons/md'
+import ConfirmModal from '../ConfirmModal'
 
 const ItemContainer = styled.div`
   display: grid;
@@ -86,7 +87,12 @@ const DetailText = styled.div`
   font-size: 0.875rem;
 `
 
-const EditBtn = styled.button`
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`
+
+const IconButton = styled.button`
   width: 2.5rem;
   height: 2.5rem;  
   display: flex;
@@ -95,45 +101,86 @@ const EditBtn = styled.button`
   background-color: transparent;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  color: #4f46e5;
   cursor: pointer;
   transition: all 0.2s ease;
-  
+`
+
+const EditBtn = styled(IconButton)`
+  color: #4f46e5;
   &:hover {
     background-color: #e0e7ff;
     border-color: #4f46e5;
   }
 `
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-export default function ProductItem(props: { item: ProductResponse, index: number, setEditing: Function }) {
-  const displayIndex = props.index + 1;
-  const formattedPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(props.item.price);
-  
-  return (
-    <ItemContainer>
-      <IndexBox>{displayIndex}</IndexBox>
-      
-      <MainInfo>
-        <ProductName title={props.item.name}>{props.item.name}</ProductName>
-        <BarcodeBadge>{props.item.product_bar_code || 'No Barcode'}</BarcodeBadge>
-      </MainInfo>
+const DeleteBtn = styled(IconButton)`
+  color: #dc2626;
+  &:hover {
+    background-color: #fee2e2;
+    border-color: #dc2626;
+  }
+`
 
-      <PriceInfo>
-        {formattedPrice}
-      </PriceInfo>
-
-      <DetailText title="Barcode">
-        {props.item.product_bar_code || '-'}
-      </DetailText>
-
-      <DetailText title="Nation of Origin">
-        {props.item.nation_of_origin || 'N/A'}
-      </DetailText>
-
-      <EditBtn onClick={() => props.setEditing(props.item)} title="Edit product">
-        <MdEdit size={18} />
-      </EditBtn>
-    </ItemContainer>
-  )
+interface ProductItemProps {
+  item: ProductResponse;
+  index: number;
+  setEditing: (item: ProductResponse) => void;
+  // Added onDelete prop
+  onDelete: (item: ProductResponse) => void;
 }
+
+export default function ProductItem({ item, index, setEditing, onDelete }: ProductItemProps) {
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const displayIndex = index + 1;
+  const formattedPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.price);
+  
+  const handleDeleteConfirm = () => {
+    onDelete(item);
+    setIsDeleteModalOpen(false);
+  };
+
+  return (
+    <>
+      <ItemContainer>
+        <IndexBox>{displayIndex}</IndexBox>
+        
+        <MainInfo>
+          <ProductName title={item.name}>{item.name}</ProductName>
+          <BarcodeBadge>{item.product_bar_code || 'No Barcode'}</BarcodeBadge>
+        </MainInfo>
+
+        <PriceInfo>
+          {formattedPrice}
+        </PriceInfo>
+
+        <DetailText title="Barcode">
+          {item.product_bar_code || '-'}
+        </DetailText>
+
+        <DetailText title="Nation of Origin">
+          {item.nation_of_origin || 'N/A'}
+        </DetailText>
+
+        <ActionButtons>
+          <EditBtn onClick={() => setEditing(item)} title="Edit product">
+            <MdEdit size={18} />
+          </EditBtn>
+          <DeleteBtn onClick={() => setIsDeleteModalOpen(true)} title="Delete product">
+            <MdDelete size={18} />
+          </DeleteBtn>
+        </ActionButtons>
+      </ItemContainer>
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Product"
+        content={`Are you sure you want to remove "${item.name}" from the catalogue?`}
+        icon={MdWarning}
+        confirmText="Delete Product"
+        confirmColor="danger"
+      />
+    </>
+  )
+} 

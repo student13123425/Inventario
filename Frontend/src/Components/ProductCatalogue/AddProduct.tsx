@@ -1,9 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react' // Added useEffect
 import styled from 'styled-components'
 import { FaArrowLeft, FaSave, FaTimes } from 'react-icons/fa'
 import ConfirmModal from '../ConfirmModal'
 import type { ProductPayload } from '../../script/objects'
+import { isNation } from '../../script/utils'
 
+// --- Styled Components (Unchanged) ---
 const Overlay = styled.div`
   position: fixed;
   top: 0;
@@ -210,14 +212,31 @@ export default function AddProduct({ onClose, onBack, onSubmit }: AddProductProp
     name?: string; 
     price?: string; 
     product_bar_code?: string;
+    nation_of_origin?: string;
   }>({})
   
   const [hasSubmitted, setHasSubmitted] = useState(false)
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
   const [pendingFormData, setPendingFormData] = useState<ProductPayload | null>(null)
 
+  // KEYBOARD HANDLERS
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isConfirmModalOpen) {
+          handleCancelSubmit();
+        } else {
+          onClose();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isConfirmModalOpen, onClose]);
+
   const validateForm = () => {
-    const newErrors: { name?: string; price?: string; product_bar_code?: string } = {}
+    const newErrors: { name?: string; price?: string; product_bar_code?: string; nation_of_origin?: string } = {}
     
     if (!formData.name.trim()) {
       newErrors.name = 'Product name is required'
@@ -232,6 +251,12 @@ export default function AddProduct({ onClose, onBack, onSubmit }: AddProductProp
     if (!formData.product_bar_code.trim()) {
       newErrors.product_bar_code = 'Barcode is required'
     }
+
+    if (!formData.nation_of_origin.trim()) {
+        newErrors.nation_of_origin = 'Nation of origin is required'
+    } else if (!isNation(formData.nation_of_origin)) {
+        newErrors.nation_of_origin = 'Invalid nation provided'
+    }
     
     return newErrors
   }
@@ -244,13 +269,12 @@ export default function AddProduct({ onClose, onBack, onSubmit }: AddProductProp
     setErrors(formErrors)
     
     if (Object.keys(formErrors).length === 0) {
-      // Convert date string to timestamp if present
       const expDate = formData.expiration_date ? new Date(formData.expiration_date).getTime() : undefined;
 
       const submitData: ProductPayload = {
         name: formData.name.trim(),
         price: parseFloat(formData.price),
-        nation_of_origin: formData.nation_of_origin.trim() || undefined,
+        nation_of_origin: formData.nation_of_origin.trim(), 
         product_bar_code: formData.product_bar_code.trim(),
         expiration_date: expDate
       }
@@ -280,14 +304,6 @@ export default function AddProduct({ onClose, onBack, onSubmit }: AddProductProp
     if (hasSubmitted && errors[field as keyof typeof errors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }))
     }
-  }
-
-  const isFormValid = () => {
-    return (
-      formData.name.trim().length > 0 &&
-      formData.product_bar_code.trim().length > 0 &&
-      !isNaN(parseFloat(formData.price)) && parseFloat(formData.price) >= 0
-    )
   }
 
   return (
@@ -345,13 +361,15 @@ export default function AddProduct({ onClose, onBack, onSubmit }: AddProductProp
             </InputGroup>
 
             <InputGroup>
-              <Label>Nation of Origin</Label>
+              <Label>Nation of Origin <Required>*</Required></Label>
               <Input
                 type="text"
                 value={formData.nation_of_origin}
                 onChange={handleChange('nation_of_origin')}
                 placeholder="e.g. USA, China"
+                required
               />
+              {hasSubmitted && errors.nation_of_origin && <ErrorMessage>{errors.nation_of_origin}</ErrorMessage>}
             </InputGroup>
 
             <InputGroup>
@@ -364,7 +382,8 @@ export default function AddProduct({ onClose, onBack, onSubmit }: AddProductProp
             </InputGroup>
 
             <ButtonGroup>
-              <SubmitButton type="submit" disabled={!isFormValid()}>
+              {/* REMOVED disabled prop to allow ENTER key to trigger submit & validation */}
+              <SubmitButton type="submit">
                 <SaveIcon />
                 Save Product
               </SubmitButton>
