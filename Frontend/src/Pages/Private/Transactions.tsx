@@ -249,15 +249,6 @@ const EmptyState = styled.div`
   text-align: center;
 `;
 
-// Wrapper for the loading component
-const LoadingWrapper = styled.div`
-  width: 100%;
-  height: 80vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
 export default function Transactions() {
   const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierResponse[]>([]);
@@ -336,15 +327,9 @@ export default function Transactions() {
     });
   };
 
-  // Show full-page loading state if data is fetching
+  // Directly return loading component to fill parent (100% width/height)
   if (loading) {
-    return (
-      <PageContainer>
-        <LoadingWrapper>
-          <LoadingComponent msg="Loading Financial Data..." />
-        </LoadingWrapper>
-      </PageContainer>
-    );
+    return <LoadingComponent msg="Loading Financial Data..." />;
   }
 
   return (

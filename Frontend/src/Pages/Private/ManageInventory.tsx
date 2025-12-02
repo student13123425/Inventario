@@ -139,15 +139,6 @@ const EmptyText = styled.p`
   margin: 0;
 `
 
-// Wrapper to center the LoadingComponent on the page
-const LoadingWrapper = styled.div`
-  width: 100%;
-  height: 80vh; /* Takes up substantial page height */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-`;
-
 export default function ManageInventory() {
   const [products, setProducts] = useState<ProductResponse[] | null>(null);
   const [viewState, setViewState] = useState<'list' | 'buy' | 'sell'>('list');
@@ -178,16 +169,9 @@ export default function ManageInventory() {
     setRefreshTrigger(prev => prev + 1);
   }
 
-  // Show loading state BEFORE checking viewState if you want full page loading 
-  // or inside the render. Here we render full page loading component.
+  // Directly return loading component to fill parent (100% width/height)
   if (isLoading) {
-    return (
-      <PageContainer>
-        <LoadingWrapper>
-          <LoadingComponent msg="Syncing Inventory..." />
-        </LoadingWrapper>
-      </PageContainer>
-    );
+    return <LoadingComponent msg="Syncing Inventory..." />;
   }
 
   if (viewState === 'buy') {
@@ -219,7 +203,6 @@ export default function ManageInventory() {
         <Card>
           <CardHeader>Current Stock Levels</CardHeader>
           <ListContent>
-            {/* We already handled isLoading above, so products shouldn't be null here theoretically, but safe check */}
             {!products || products.length === 0 ? (
               <EmptyState>
                 <TbBox size={64} color="#d1d5db" />
