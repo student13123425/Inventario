@@ -327,3 +327,28 @@ h1 {
   .sidebar-header span { display: none; }
   .dashboard-grid { gap: var(--space-reg); }
 }
+
+/* ... Keep all your existing CSS ... */
+
+/* --- SCROLLBAR HIDING (New) --- */
+
+/* Apply to all elements to ensure clean UI */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Chrome, Safari, Opera */
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ensure the main content area scrolls smoothly */
+.main-content {
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.data-table-container {
+  overflow-x: auto;
+}
