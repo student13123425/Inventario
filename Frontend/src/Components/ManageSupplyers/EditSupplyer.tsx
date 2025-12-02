@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import type { SupplierResponse, SupplierProductResponse } from '../../script/objects'
-import { TbAlertCircle, TbCheck, TbChevronLeft, TbTrash, TbUnlink } from 'react-icons/tb'
+import { TbAlertCircle, TbCheck, TbChevronLeft, TbTrash } from 'react-icons/tb'
 import ConfirmModal from '../ConfirmModal'
 import ProductLinkerCompoent from "./ProductLinkerCompoent"
 import LinkProduct from './LinkProduct'
 import { fetchSupplierProducts } from '../../script/network'
 import { getToken } from '../../script/utils'
-import LoadingCard from '../../Pages/Private/LoadingComponentInline'
-import { unlinkSupplierProduct } from '../../script/network'
 
 interface EditSupplierProps {
   item: SupplierResponse
@@ -17,775 +15,283 @@ interface EditSupplierProps {
   onDelete: () => void
 }
 
-const Container = styled.div`
-  width: 100vw;
-  height: 100%;
+const PageContainer = styled.div`
+  width: 100%;
+  height: 100vh;
   background-color: #f9fafb;
-  padding: 2rem;
+  padding: 2rem 5%;
+  box-sizing: border-box;
   font-family: 'Inter', sans-serif;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 `
 
-const Header = styled.div`  
+const Header = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
   max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
+  margin: 0 auto 2rem auto;
 `
 
 const BackButton = styled.button`
   background: transparent;
   border: 1px solid #e5e7eb;
   color: #4f46e5;
+  padding: 0.625rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #eff6ff;
+    border-color: #4f46e5;
+  }
+`
+
+const EditorCard = styled.div`
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`
+
+const CardHeader = styled.div`
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e5e7eb;
+`
+
+const Title = styled.h1`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+`
+
+const Columns = styled.div`
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+
+  @media (max-width: 1024px) {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+`
+
+const LeftPane = styled.div`
+  flex: 1;
+  padding: 2rem;
+  border-right: 1px solid #e5e7eb;
+  overflow-y: auto;
+  min-width: 350px;
+
+  @media (max-width: 1024px) {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+    max-height: 500px;
+  }
+`
+
+const RightPane = styled.div`
+  flex: 1.5;
+  background-color: #f9fafb;
+  overflow-y: auto;
+  padding: 2rem;
+`
+
+const FormGroup = styled.div`
+  margin-bottom: 1.5rem;
+`
+
+const Label = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+`
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+`
+
+const ActionButtons = styled.div`
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`
+
+const Button = styled.button<{ variant: 'primary' | 'danger' }>`
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  transition: all 0.2s;
 
-  &:hover {
-    background-color: #f3f4f6;
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
+  ${p => p.variant === 'primary' ? `
+    background: #4f46e5;
+    color: white;
+    border: none;
+    &:hover { background: #4338ca; }
+  ` : `
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    &:hover { background: #fee2e2; border-color: #ef4444; }
+  `}
 `
-
-const Content = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #f3f4f6;
-  padding: 2.5rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 4rem - 2.5rem - 2.5rem); /* Account for padding and margins */
-  max-height: 800px;
-`
-
-const Title = styled.h1`
-  font-size: 2.25rem;
-  font-weight: 800;
-  color: #111827;
-  margin-bottom: 2rem;
-  flex-shrink: 0;
-`
-
-const ColumnsContainer = styled.div`
-  display: flex;
-  gap: 2rem;
-  flex: 1;
-  overflow: hidden;
-  margin-bottom: 2rem;
-`
-
-const LeftColumn = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-`
-
-const RightColumn = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-left: 1px solid #e5e7eb;
-  padding-left: 2rem;
-`
-
-const FormContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-`
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  flex: 1;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-
-  /* Custom scrollbar styling */
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
-`
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  flex-shrink: 0;
-  width: 100%;
-`
-
-const Label = styled.label`
-  color: #111827;
-  font-weight: 500;
-  font-size: 0.875rem;
-`
-
-const Required = styled.span`
-  color: #dc2626;
-`
-
-const Input = styled.input<{ hasError?: boolean }>`
-  padding: 0.75rem;
-  border: 1px solid ${props => props.hasError ? '#dc2626' : '#e5e7eb'};
-  border-radius: 8px;
-  font-size: 1rem;
-  font-family: 'Inter', sans-serif;
-  transition: all 0.2s ease;
-  max-width: 400px;
-
-  &:focus {
-    outline: none;
-    border-color: ${props => props.hasError ? '#dc2626' : '#4f46e5'};
-    box-shadow: 0 0 0 3px ${props => props.hasError ? 'rgba(220, 38, 38, 0.1)' : 'rgba(79, 70, 229, 0.1)'};
-  }
-
-  &:hover {
-    border-color: ${props => props.hasError ? '#dc2626' : '#9ca3af'};
-  }
-`
-
-const InputHelpText = styled.span`
-  color: #6b7280;
-  font-size: 0.75rem;
-  margin-top: 0.25rem;
-`
-
-const ErrorMessage = styled.div`
-  color: #dc2626;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`
-
-const ButtonGroup = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 2rem;
-  border-top: 1px solid #f3f4f6;
-  flex-shrink: 0;
-  width: 100%;
-`
-
-const LeftButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-`
-
-const RightButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-`
-
-const DeleteButton = styled.button`
-  padding: 0.75rem 2rem;
-  background-color: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1rem;
-  font-family: 'Inter', sans-serif;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: #fee2e2;
-    border-color: #fca5a5;
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-`
-
-const CancelButton = styled.button`
-  padding: 0.75rem 2rem;
-  background-color: #ffffff;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1rem;
-  font-family: 'Inter', sans-serif;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: #f9fafb;
-    border-color: #9ca3af;
-  }
-`
-
-const SubmitButton = styled.button<{ disabled?: boolean }>`
-  padding: 0.75rem 2rem;
-  background-color: ${props => props.disabled ? '#9ca3af' : '#4f46e5'};
-  color: #ffffff;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1rem;
-  font-family: 'Inter', sans-serif;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: ${props => props.disabled ? '#9ca3af' : '#4338ca'};
-    transform: ${props => props.disabled ? 'none' : 'translateY(-1px)'};
-    box-shadow: ${props => props.disabled ? 'none' : '0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -1px rgba(79, 70, 229, 0.06)'};
-  }
-
-  &:active {
-    transform: ${props => props.disabled ? 'none' : 'translateY(0)'};
-  }
-`
-
-const SaveIndicator = styled.div<{ $isVisible: boolean }>`
-  background-color: #059669;
-  color: white;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  display: ${props => props.$isVisible ? 'flex' : 'none'};
-  align-items: center;
-  gap: 0.5rem;
-  max-width: fit-content;
-  margin-top: 1rem;
-  flex-shrink: 0;
-`
-
-const ErrorIndicator = styled.div<{ $isVisible: boolean }>`
-  background-color: #fef2f2;
-  color: #dc2626;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  display: ${props => props.$isVisible ? 'flex' : 'none'};
-  align-items: center;
-  gap: 0.5rem;
-  max-width: fit-content;
-  margin-top: 1rem;
-  border: 1px solid #fecaca;
-  flex-shrink: 0;
-`
-
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex: 1;
-  color: #6b7280;
-  font-size: 1rem;
-  height: 100%;
-`
-
-const BackIcon = () => (
-  <TbChevronLeft size={16} color="#4f46e5" />
-)
-
-const CheckIcon = () => (
-  <TbCheck size={16} color="currentColor" />
-)
-
-const ErrorIcon = () => (
-  <TbAlertCircle size={16} color="currentColor" />
-)
-
-const SaveIcon = () => (
-  <TbCheck size={16} color="currentColor" />
-)
-
-const DeleteIcon = () => (
-  <TbTrash size={16} color="currentColor" />
-)
-
-// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-const loadSupplierProducts = async (setIsLoading:Function, setProductsError:Function, setProducts:Function, supplierId: number) => {
-  try {
-    setIsLoading(true)
-    setProductsError(null)
-    const token = await getToken()
-    if (token) {
-      const result = await fetchSupplierProducts(token, supplierId)
-      if (result.success) {
-        setProducts(result.products)
-      } else {
-        setProductsError('Failed to load supplier products')
-      }
-    } else {
-      setProductsError('Authentication required')
-    }
-  } catch (error) {
-    console.error('Error fetching supplier products:', error)
-    setProductsError('Failed to load supplier products')
-  } finally {
-    setIsLoading(false)
-  }
-}
 
 export default function EditSupplier(props: EditSupplierProps) {
-  const [Name, setName] = useState(props.item.Name)
-  const [Email, setEmail] = useState(props.item.email)
-  const [Phone, setPhone] = useState(props.item.phone_number)
-  const [IsNewLink, setIsNewLink] = useState<boolean>(false)
-  const [products, setProducts] = useState<SupplierProductResponse[]>([])
-  const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [productsError, setProductsError] = useState<string | null>(null)
-  const [errors, setErrors] = useState<{ 
-    Name?: string; 
-    email?: string; 
-    phone_number?: string;
-  }>({})
-  const [showSaveIndicator, setShowSaveIndicator] = useState(false)
-  const [showErrorIndicator, setShowErrorIndicator] = useState(false)
-  const [hasSubmitted, setHasSubmitted] = useState(false)
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
-  const [pendingUpdateData, setPendingUpdateData] = useState<Partial<SupplierResponse> | null>(null)
+  const [formData, setFormData] = useState({
+    Name: props.item.Name,
+    email: props.item.email,
+    phone_number: props.item.phone_number
+  });
   
-  // State for unlink modal
-  const [isUnlinkModalOpen, setIsUnlinkModalOpen] = useState(false)
-  const [productToUnlink, setProductToUnlink] = useState<SupplierProductResponse | null>(null)
-  const [isUnlinking, setIsUnlinking] = useState(false)
+  const [isNewLink, setIsNewLink] = useState(false);
+  const [products, setProducts] = useState<SupplierProductResponse[]>([]);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isSaveOpen, setIsSaveOpen] = useState(false);
 
-  // Fetch products when component mounts
-  useEffect(() => {
-    loadSupplierProducts(setIsLoading, setProductsError, setProducts, props.item.ID)
-  }, [props.item.ID])
+  const loadProducts = async () => {
+    const token = await getToken();
+    if (token) {
+      const res = await fetchSupplierProducts(token, props.item.ID);
+      if (res.success) setProducts(res.products);
+    }
+  };
 
-  const validateForm = () => {
-    const newErrors: { Name?: string; email?: string; phone_number?: string } = {}
-    
-    const visibleName = Name.trim()
-    if (!visibleName) {
-      newErrors.Name = 'Supplier name is required'
-    } else if (visibleName.length < 4) {
-      newErrors.Name = 'Supplier name must be at least 4 characters long'
-    }
-    
-    const phoneDigits = Phone.replace(/\D/g, '')
-    if (!Phone) {
-      newErrors.phone_number = 'Phone number is required'
-    } else if (phoneDigits.length !== 10) {
-      newErrors.phone_number = 'Phone number must be exactly 10 digits'
-    }
-    
-    if (!Email) {
-      newErrors.email = 'Email address is required'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(Email)) {
-      newErrors.email = 'Please enter a valid email address'
-    }
-    
-    return newErrors
-  }
+  useEffect(() => { loadProducts(); }, [props.item.ID]);
 
-  const hasChanges = () => {
+  const handleUpdate = () => {
+    props.onUpdate(formData);
+    setIsSaveOpen(false);
+  };
+
+  if (isNewLink) {
     return (
-      Name !== props.item.Name ||
-      Email !== props.item.email ||
-      Phone !== props.item.phone_number
-    )
+      <LinkProduct 
+        item={props.item} 
+        setIsNewLink={setIsNewLink} 
+        onLinkProduct={() => { 
+          loadProducts(); 
+          setIsNewLink(false); 
+        }}
+      />
+    );
   }
-
-  const isFormValid = () => {
-    const formErrors = validateForm()
-    return Object.keys(formErrors).length === 0
-  }
-
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setName(e.target.value)
-    
-    if (hasSubmitted && errors.Name) {
-      setErrors(prev => ({ ...prev, Name: undefined }))
-    }
-  }
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value)
-    
-    if (hasSubmitted && errors.email) {
-      setErrors(prev => ({ ...prev, email: undefined }))
-    }
-  }
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '')
-    setPhone(value)
-    
-    if (hasSubmitted && errors.phone_number) {
-      setErrors(prev => ({ ...prev, phone_number: undefined }))
-    }
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setHasSubmitted(true)
-    
-    const formErrors = validateForm()
-    setErrors(formErrors)
-
-    if (Object.keys(formErrors).length === 0) {
-      const updateData = {
-        Name: Name.trim(),
-        email: Email,
-        phone_number: Phone
-      }
-      
-      // Show confirmation modal for save
-      setPendingUpdateData(updateData)
-      setIsSaveModalOpen(true)
-    } else {
-      setShowErrorIndicator(true)
-      setShowSaveIndicator(false)
-      const timer = setTimeout(() => {
-        setShowErrorIndicator(false)
-      }, 3000)
-
-      return () => clearTimeout(timer)
-    }
-  }
-
-  const handleSaveConfirm = () => {
-    if (pendingUpdateData) {
-      props.onUpdate(pendingUpdateData)
-      setShowSaveIndicator(true)
-      setShowErrorIndicator(false)
-      const timer = setTimeout(() => {
-        setShowSaveIndicator(false)
-      }, 2000)
-    }
-    setIsSaveModalOpen(false)
-    setPendingUpdateData(null)
-  }
-
-  const handleSaveCancel = () => {
-    setIsSaveModalOpen(false)
-    setPendingUpdateData(null)
-  }
-
-  const handleCancel = () => {
-    // Reset form to original values
-    setName(props.item.Name)
-    setEmail(props.item.email)
-    setPhone(props.item.phone_number)
-    setErrors({})
-    setHasSubmitted(false)
-    setShowSaveIndicator(false)
-    setShowErrorIndicator(false)
-  }
-
-  const handleDeleteClick = () => {
-    setIsDeleteModalOpen(true)
-  }
-
-  const handleDeleteConfirm = () => {
-    props.onDelete()
-    setIsDeleteModalOpen(false)
-  }
-
-  const handleDeleteCancel = () => {
-    setIsDeleteModalOpen(false)
-  }
-
-  const handleLinkProduct = async (productId: number, supplierPrice: number, deliverySpeed: number) => {
-    console.log('Linking product:', { productId, supplierPrice, deliverySpeed })
-    
-    try {
-      // Refresh the products list after successful linking
-      setIsLoading(true);
-      const token = await getToken();
-      if (token) {
-        const result = await fetchSupplierProducts(token, props.item.ID);
-        if (result.success) {
-          setProducts(result.products);
-        } else {
-          setProductsError('Failed to load updated products');
-        }
-      }
-    } catch (error) {
-      console.error('Error refreshing products after linking:', error);
-      setProductsError('Failed to refresh products');
-    } finally {
-      setIsLoading(false);
-      setIsNewLink(false); // Close the link form
-    }
-  }
-
-  // Handle unlink request from ProductLinkerCompoent
-  const handleUnlinkRequest = (product: SupplierProductResponse) => {
-    setProductToUnlink(product)
-    setIsUnlinkModalOpen(true)
-  }
-
-  // Handle unlink confirmation
-  const handleUnlinkConfirm = async () => {
-    if (!productToUnlink) return
-    
-    try {
-      setIsUnlinking(true)
-      const token = await getToken()
-      if (token) {
-        await unlinkSupplierProduct(token, props.item.ID, productToUnlink.ID)
-        // Refresh the products list
-        await loadSupplierProducts(setIsLoading, setProductsError, setProducts, props.item.ID)
-        setIsUnlinkModalOpen(false)
-        setProductToUnlink(null)
-      }
-    } catch (error) {
-      console.error('Error unlinking product:', error)
-      // You might want to show an error message here
-    } finally {
-      setIsUnlinking(false)
-    }
-  }
-
-  const handleUnlinkCancel = () => {
-    setIsUnlinkModalOpen(false)
-    setProductToUnlink(null)
-  }
-
-  if (IsNewLink) 
-    return <LinkProduct item={props.item} setIsNewLink={setIsNewLink} onLinkProduct={handleLinkProduct}/>
 
   return (
     <>
-      <Container>
+      <PageContainer>
         <Header>
-          <BackButton onClick={props.onBack} type="button">
-            <BackIcon />
-            Back to Suppliers
+          <BackButton onClick={props.onBack}>
+            <TbChevronLeft /> Back to Suppliers
           </BackButton>
         </Header>
         
-        <Content>
-          <Title>Edit Supplier</Title>
+        <EditorCard>
+          <CardHeader>
+            <Title>Edit Supplier: {props.item.Name}</Title>
+          </CardHeader>
           
-          <ColumnsContainer>
-            {/* Left Column - Form Inputs */}
-            <LeftColumn>
-              <FormContainer>
-                <Form onSubmit={handleSubmit}>
-                  <FormGroup>
-                    <Label htmlFor="supplier-name">
-                      Supplier Name <Required>*</Required>
-                    </Label>
-                    <Input
-                      id="supplier-name"
-                      type="text"
-                      value={Name}
-                      onChange={handleNameChange}
-                      placeholder="Enter supplier name (minimum 4 characters)"
-                      hasError={!!errors.Name}
-                    />
-                    <InputHelpText>
-                      Must be at least 4 characters long
-                    </InputHelpText>
-                    {hasSubmitted && errors.Name && (
-                      <ErrorMessage>
-                        <ErrorIcon />
-                        {errors.Name}
-                      </ErrorMessage>
-                    )}
-                  </FormGroup>
-
-                  <FormGroup>
-                    <Label htmlFor="supplier-email">
-                      Email Address <Required>*</Required>
-                    </Label>
-                    <Input
-                      id="supplier-email"
-                      type="email"
-                      value={Email}
-                      onChange={handleEmailChange}
-                      placeholder="supplier@example.com"
-                      hasError={!!errors.email}
-                    />
-                    <InputHelpText>
-                      Must be a valid email format
-                    </InputHelpText>
-                    {hasSubmitted && errors.email && (
-                      <ErrorMessage>
-                        <ErrorIcon />
-                        {errors.email}
-                      </ErrorMessage>
-                    )}
-                  </FormGroup>
-
-                  <FormGroup>
-                    <Label htmlFor="supplier-phone">
-                      Phone Number <Required>*</Required>
-                    </Label>
-                    <Input
-                      id="supplier-phone"
-                      type="tel"
-                      value={Phone}
-                      onChange={handlePhoneChange}
-                      placeholder="Enter 10-digit phone number"
-                      maxLength={10}
-                      hasError={!!errors.phone_number}
-                    />
-                    <InputHelpText>
-                      Must be exactly 10 digits
-                    </InputHelpText>
-                    {hasSubmitted && errors.phone_number && (
-                      <ErrorMessage>
-                        <ErrorIcon />
-                        {errors.phone_number}
-                      </ErrorMessage>
-                    )}
-                  </FormGroup>
-                </Form>
-              </FormContainer>
-            </LeftColumn>
-
-            {/* Right Column - Product Linker Component */}
-            <RightColumn>
-              {isLoading ? (
-                <LoadingContainer>
-                  <LoadingCard msg='Loading Products'/>
-                </LoadingContainer>
-              ) : productsError ? (
-                <LoadingContainer>Error: {productsError}</LoadingContainer>
-              ) : (
-                <ProductLinkerCompoent
-                  ForceReload={() => {
-                    loadSupplierProducts(setIsLoading, setProductsError, setProducts, props.item.ID)
-                  }}
-                  onUnlinkRequest={handleUnlinkRequest}
-                  supplier={props.item}
-                  products={products}
-                  setIsNewLink={setIsNewLink}
+          <Columns>
+            <LeftPane>
+              <FormGroup>
+                <Label>Supplier Name</Label>
+                <Input 
+                  value={formData.Name} 
+                  onChange={e => setFormData({...formData, Name: e.target.value})} 
                 />
-              )}
-            </RightColumn>
-          </ColumnsContainer>
+              </FormGroup>
+              <FormGroup>
+                <Label>Email Address</Label>
+                <Input 
+                  value={formData.email} 
+                  onChange={e => setFormData({...formData, email: e.target.value})} 
+                />
+              </FormGroup>
+              <FormGroup>
+                <Label>Phone Number</Label>
+                <Input 
+                  value={formData.phone_number} 
+                  onChange={e => setFormData({...formData, phone_number: e.target.value})} 
+                />
+              </FormGroup>
 
-          {/* Buttons positioned under both columns */}
-          <ButtonGroup>
-            <LeftButtonGroup>
-              <DeleteButton type="button" onClick={handleDeleteClick}>
-                <DeleteIcon />
-                Delete Supplier
-              </DeleteButton>
-            </LeftButtonGroup>
-            <RightButtonGroup>
-              <CancelButton type="button" onClick={handleCancel}>
-                Cancel
-              </CancelButton>
-              <SubmitButton 
-                type="submit" 
-                disabled={!hasChanges()}
-                onClick={handleSubmit}
-              >
-                <SaveIcon />
-                Save Changes
-              </SubmitButton>
-            </RightButtonGroup>
-          </ButtonGroup>
+              <ActionButtons>
+                <Button variant="danger" onClick={() => setIsDeleteOpen(true)}>
+                  <TbTrash /> Delete
+                </Button>
+                <Button variant="primary" onClick={() => setIsSaveOpen(true)}>
+                  <TbCheck /> Save Changes
+                </Button>
+              </ActionButtons>
+            </LeftPane>
 
-          <SaveIndicator $isVisible={showSaveIndicator}>
-            <CheckIcon />
-            Changes saved successfully
-          </SaveIndicator>
+            <RightPane>
+              <ProductLinkerCompoent 
+                supplier={props.item}
+                products={products}
+                setIsNewLink={setIsNewLink}
+                ForceReload={loadProducts}
+              />
+            </RightPane>
+          </Columns>
+        </EditorCard>
+      </PageContainer>
 
-          <ErrorIndicator $isVisible={showErrorIndicator}>
-            <ErrorIcon />
-            Please fix validation errors to save changes
-          </ErrorIndicator>
-        </Content>
-      </Container>
-      
-      {/* Delete Supplier Modal */}
       <ConfirmModal
-        isOpen={isDeleteModalOpen}
-        onClose={handleDeleteCancel}
-        onConfirm={handleDeleteConfirm}
-        onCancel={handleDeleteCancel}
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        onConfirm={props.onDelete}
         title="Delete Supplier"
-        content="Are you sure you want to delete this supplier? This action cannot be undone and will permanently remove all associated data."
+        content="Are you sure? This will remove the supplier and unlink all products."
+        confirmText="Delete"
+        confirmColor="danger"
         icon={TbTrash}
-        confirmText="Delete Supplier"
-        cancelText="Cancel"
-        confirmColor="danger"
       />
-      
-      {/* Save Changes Modal */}
+
       <ConfirmModal
-        isOpen={isSaveModalOpen}
-        onClose={handleSaveCancel}
-        onConfirm={handleSaveConfirm}
-        onCancel={handleSaveCancel}
+        isOpen={isSaveOpen}
+        onClose={() => setIsSaveOpen(false)}
+        onConfirm={handleUpdate}
         title="Save Changes"
-        content="Are you sure you want to save these changes to the supplier? This will update the supplier information in the system."
+        content="Confirm updating supplier details?"
         icon={TbCheck}
-        confirmText="Save Changes"
-        cancelText="Cancel"
-      />
-      
-      {/* Unlink Product Modal */}
-      <ConfirmModal
-        isOpen={isUnlinkModalOpen}
-        onClose={handleUnlinkCancel}
-        onConfirm={handleUnlinkConfirm}
-        onCancel={handleUnlinkCancel}
-        title="Unlink Product"
-        content={`Are you sure you want to unlink "${productToUnlink?.name}" from this supplier? This product will no longer be available from this supplier.`}
-        icon={TbUnlink}
-        confirmText="Unlink Product"
-        cancelText="Cancel"
-        isConfirming={isUnlinking}
-        confirmColor="danger"
       />
     </>
   )

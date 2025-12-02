@@ -6,20 +6,23 @@ import { getToken } from '../../script/utils'
 import type { ProductResponse } from '../../script/objects'
 import ConfirmModal from '../ConfirmModal'
 
-// Reusing style components for consistency
+// Shared styles for consistency
 const Overlay = styled.div`
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;
+  background-color: rgba(17, 24, 39, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex; justify-content: center; align-items: center; z-index: 1000;
   font-family: 'Inter', sans-serif;
+  padding: 1rem; box-sizing: border-box;
 `
 
 const ModalCard = styled.div`
-  width: 90%; max-width: 600px; background-color: white; border-radius: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column;
+  width: 100%; max-width: 600px; background-color: white; border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden; display: flex; flex-direction: column;
 `
 
 const Header = styled.div`
-  padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; background-color: #f9fafb;
+  padding: 1.5rem; border-bottom: 1px solid #e5e7eb; background-color: white;
   display: flex; justify-content: space-between; align-items: center;
 `
 
@@ -29,7 +32,8 @@ const Title = styled.h2`
 `
 
 const Content = styled.div`
-  padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem;
+  padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;
+  background-color: #f9fafb;
 `
 
 const FormGroup = styled.div`
@@ -40,12 +44,21 @@ const Label = styled.label`
   font-size: 0.875rem; font-weight: 500; color: #374151;
 `
 
-const Select = styled.select`
-  padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;
+const StyledSelect = styled.select`
+  width: 100%; padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.875rem; color: #111827;
+  &:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
 `
 
-const Input = styled.input`
-  padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem;
+const StyledInput = styled.input`
+  width: 100%; padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.875rem; color: #111827;
+  &:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+  box-sizing: border-box;
+`
+
+const SearchWrapper = styled.div`
+  position: relative; display: flex; align-items: center;
 `
 
 const SummaryBox = styled.div`
@@ -57,22 +70,24 @@ const TotalPrice = styled.div`
   font-size: 2rem; font-weight: 800; color: #059669;
 `
 
-const ButtonGroup = styled.div`
-  padding: 1.5rem 2rem; border-top: 1px solid #e5e7eb;
-  display: flex; justify-content: flex-end; gap: 1rem; background-color: #f9fafb;
+const Footer = styled.div`
+  padding: 1rem 1.5rem; border-top: 1px solid #e5e7eb;
+  display: flex; justify-content: flex-end; gap: 0.75rem; background-color: white;
 `
 
 const Button = styled.button<{ primary?: boolean }>`
-  padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600;
+  padding: 0.625rem 1.25rem; border-radius: 8px; font-weight: 500; font-size: 0.875rem;
   cursor: pointer; transition: all 0.2s ease;
   background-color: ${props => props.primary ? '#4f46e5' : 'white'};
   color: ${props => props.primary ? 'white' : '#374151'};
   border: ${props => props.primary ? 'none' : '1px solid #d1d5db'};
+  box-shadow: ${props => props.primary ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none'};
 
   &:hover {
     background-color: ${props => props.primary ? '#4338ca' : '#f9fafb'};
+    transform: translateY(-1px);
   }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 `
 
 interface SellStockProps {
@@ -103,25 +118,23 @@ export default function SellStock({ onClose, onSuccess }: SellStockProps) {
     setSelectedProduct(prod || null);
   }
 
-    const handleSale = async () => {
+  const handleSale = async () => {
     if (!selectedProduct) return;
     const token = await getToken();
     if (!token) return;
 
     try {
-      // 1. Reduce Inventory
       await reduceInventory(token, {
         productId: selectedProduct.ID,
         quantity: quantity
       });
 
-      // 2. Record Transaction (Income)
       await createTransaction(token, {
         TransactionType: 'Sale',
         payment_type: 'paid',
         amount: selectedProduct.price * quantity,
         TransactionDate: new Date().toISOString(),
-        CustomerID: 1  // Add this line
+        CustomerID: 1 
       });
 
       setIsConfirmOpen(false);
@@ -134,7 +147,6 @@ export default function SellStock({ onClose, onSuccess }: SellStockProps) {
 
   const totalPrice = (selectedProduct?.price || 0) * quantity;
   
-  // Filter products for the dropdown
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     p.product_bar_code.includes(searchTerm)
@@ -151,32 +163,32 @@ export default function SellStock({ onClose, onSuccess }: SellStockProps) {
           <Content>
              <FormGroup>
               <Label>Search Product (Name or Barcode)</Label>
-              <div style={{position: 'relative', display: 'flex', alignItems: 'center'}}>
-                <TbScan style={{position: 'absolute', left: '10px', color: '#6b7280'}} />
-                <Input 
+              <SearchWrapper>
+                <TbScan style={{position: 'absolute', left: '10px', color: '#6b7280', pointerEvents: 'none'}} />
+                <StyledInput 
                   placeholder="Scan or type..." 
-                  style={{paddingLeft: '35px', width: '100%'}}
+                  style={{paddingLeft: '35px'}}
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                 />
-              </div>
+              </SearchWrapper>
             </FormGroup>
 
             <FormGroup>
               <Label>Select Product</Label>
-              <Select onChange={handleProductSelect} value={selectedProduct?.ID || ''}>
+              <StyledSelect onChange={handleProductSelect} value={selectedProduct?.ID || ''}>
                 <option value="">-- Select from list --</option>
                 {filteredProducts.map(p => (
                   <option key={p.ID} value={p.ID}>
                     {p.name} (${p.price})
                   </option>
                 ))}
-              </Select>
+              </StyledSelect>
             </FormGroup>
 
             <FormGroup>
               <Label>Quantity Sold</Label>
-              <Input 
+              <StyledInput 
                 type="number" 
                 min="1" 
                 value={quantity} 
@@ -186,17 +198,17 @@ export default function SellStock({ onClose, onSuccess }: SellStockProps) {
 
             {selectedProduct && (
               <SummaryBox>
-                <div style={{marginBottom: '0.5rem', color: '#065f46'}}>Total Sale Amount</div>
+                <div style={{marginBottom: '0.5rem', color: '#065f46', fontSize: '0.875rem', fontWeight: 600}}>TOTAL REVENUE</div>
                 <TotalPrice>${totalPrice.toFixed(2)}</TotalPrice>
               </SummaryBox>
             )}
           </Content>
-          <ButtonGroup>
+          <Footer>
             <Button onClick={onClose}>Cancel</Button>
             <Button primary disabled={!selectedProduct} onClick={() => setIsConfirmOpen(true)}>
               Complete Sale
             </Button>
-          </ButtonGroup>
+          </Footer>
         </ModalCard>
       </Overlay>
 

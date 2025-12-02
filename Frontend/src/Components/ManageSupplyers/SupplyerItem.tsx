@@ -1,74 +1,82 @@
 import React from 'react'
-import type { ProductSupplierResponse, SupplierProductResponse, SupplierResponse } from '../../script/objects'
+import type { SupplierProductResponse, SupplierResponse } from '../../script/objects'
 import styled from 'styled-components'
-import { MdEdit } from 'react-icons/md'
+import { MdEdit, MdPhone, MdEmail } from 'react-icons/md'
 
-const Container = styled.div`
-  height: 3.5rem;
-  display: flex;
-  width: 100%;
-  border-radius: 8px;
+const ItemContainer = styled.div`
+  display: grid;
+  grid-template-columns: auto 2fr 1.5fr 1.5fr auto;
+  align-items: center;
+  gap: 1.5rem;
   background-color: #ffffff;
-  border: 2px solid #e5e7eb;
-  margin-bottom: 0.5rem;
+  padding: 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
   transition: all 0.2s ease;
   font-family: 'Inter', sans-serif;
-  overflow: hidden;
+
+  &:hover {
+    background-color: #f9fafb;
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: auto 1fr auto;
+    gap: 1rem;
+    
+    /* Hide contact info on mobile, maybe show on expand in future */
+    & > div:nth-child(3), & > div:nth-child(4) {
+      display: none;
+    }
+  }
 `
 
-const SmallContainer = styled.div`
-  width: 3.5rem;
-  height: 3.5rem;
+const IndexBox = styled.div`
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: #e0e7ff;
+  color: #4f46e5;
+  border-radius: 8px;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f9fafb;
-  border-right: 1px solid #f3f4f6;
   font-weight: 600;
-  color: #4f46e5;
-  font-size: 1rem;
+  font-size: 0.875rem;
   flex-shrink: 0;
-  
-  &:first-child {
-    border-radius: 8px 0 0 8px;
-  }
-  
-  &:last-child {
-    border-right: none;
-    border-radius: 0 8px 8px 0;
-    background-color: transparent;
-  }
 `
 
-const ExtendedContainer = styled.div`
-  flex: 1;
-  height: 3.5rem;
+const MainInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+`
+
+const SupplierName = styled.div`
+  font-weight: 600;
+  color: #111827;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`
+
+const ProductCount = styled.span`
+  font-size: 0.75rem;
+  color: #6b7280;
+`
+
+const ContactInfo = styled.div`
   display: flex;
   align-items: center;
-  justify-content: start;
-  padding: 0 1rem;
-  border-right: 1px solid #f3f4f6;
-  font-size: 0.875rem;
+  gap: 0.5rem;
   color: #374151;
-  
-  &:last-child {
-    border-right: none;
-  }
-  
-  &:nth-child(2) {
-    font-weight: 600;
-    color: #111827;
-    font-size: 0.9rem;
-  }
-  
-  &:nth-child(3) {
-    color: #6b7280;
-  }
-  
-  &:nth-child(4) {
-    color: #6b7280;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  }
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `
 
 const EditBtn = styled.button`
@@ -77,60 +85,51 @@ const EditBtn = styled.button`
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #4f46e5;
-  border: none;
-  border-radius: 6px;
-  color: #ffffff;
+  background-color: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #4f46e5;
   cursor: pointer;
   transition: all 0.2s ease;
   
   &:hover {
-    background-color: #4338ca;
-    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -1px rgba(79, 70, 229, 0.06);
-  }
-  
-  &:active {
-    transform: translateY(0);
-  }
-  
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    background-color: #e0e7ff;
+    border-color: #4f46e5;
   }
 `
 
-const EditIcon = styled(MdEdit)`
-  font-size: 1.1rem;
-`
+interface SupplyerItemProps {
+  item: SupplierResponse;
+  index: number;
+  setEditing: (item: any) => void;
+  products: SupplierProductResponse[];
+}
 
-const EmptyField = styled.span`
-  color: #9ca3af;
-  font-style: italic;
-  font-size: 0.8rem;
-`
+export default function SupplyerItem({ item, index, setEditing, products }: SupplyerItemProps) {
+  const displayIndex = index + 1;
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-export default function SupplyerItem(props: { item: SupplierResponse, index: number,setEditing:Function,products:SupplierProductResponse[]}) {
-  const displayIndex = props.index + 1; // Convert to 1-based indexing for display
   return (
-    <Container>
-      <SmallContainer>
-        {displayIndex}
-      </SmallContainer>
-      <ExtendedContainer>
-        {props.item.Name || <EmptyField>No name</EmptyField>}
-      </ExtendedContainer>
-      <ExtendedContainer>
-        {props.item.email || <EmptyField>No email</EmptyField>}
-      </ExtendedContainer>
-      <ExtendedContainer>
-        {props.item.phone_number || <EmptyField>No phone</EmptyField>}
-      </ExtendedContainer>
-      <SmallContainer>
-        <EditBtn onClick={()=>props.setEditing(props.item)} title="Edit supplier">
-          <EditIcon />
-        </EditBtn>
-      </SmallContainer>
-    </Container>
+    <ItemContainer>
+      <IndexBox>{displayIndex}</IndexBox>
+      
+      <MainInfo>
+        <SupplierName title={item.Name}>{item.Name}</SupplierName>
+        <ProductCount>{products.length} Products Linked</ProductCount>
+      </MainInfo>
+
+      <ContactInfo>
+        <MdEmail size={16} color="#9ca3af" />
+        <span title={item.email}>{item.email || 'No email'}</span>
+      </ContactInfo>
+
+      <ContactInfo>
+        <MdPhone size={16} color="#9ca3af" />
+        <span>{item.phone_number || 'No phone'}</span>
+      </ContactInfo>
+
+      <EditBtn onClick={() => setEditing(item)} title="Edit supplier">
+        <MdEdit size={18} />
+      </EditBtn>
+    </ItemContainer>
   )
 }

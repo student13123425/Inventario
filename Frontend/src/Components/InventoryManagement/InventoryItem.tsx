@@ -5,56 +5,62 @@ import { fetchStockLevel } from '../../script/network'
 import { getToken } from '../../script/utils'
 import { TbAlertTriangle, TbPackage } from 'react-icons/tb'
 
-const Container = styled.div`
-  height: 4.5rem;
-  display: flex;
-  width: 100%;
-  border-radius: 8px;
+const ItemContainer = styled.div`
+  display: grid;
+  grid-template-columns: auto 2fr 1fr 1fr 1fr;
+  align-items: center;
+  gap: 1.5rem;
   background-color: #ffffff;
-  border: 1px solid #e5e7eb;
-  margin-bottom: 0.5rem;
+  padding: 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
   transition: all 0.2s ease;
   font-family: 'Inter', sans-serif;
-  overflow: hidden;
 
   &:hover {
-    border-color: #4f46e5;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    background-color: #f9fafb;
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: auto 1fr auto;
+    gap: 1rem;
   }
 `
 
-const IconContainer = styled.div`
-  width: 4.5rem;
-  height: 4.5rem;
+const IconBox = styled.div`
+  width: 3rem;
+  height: 3rem;
+  background-color: #e0e7ff; /* Indigo-100 */
+  color: #4f46e5;
+  border-radius: 8px;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f9fafb;
-  border-right: 1px solid #f3f4f6;
-  color: #4f46e5;
   font-size: 1.5rem;
   flex-shrink: 0;
 `
 
-const InfoContainer = styled.div`
-  flex: 2;
+const MainInfo = styled.div`
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 0 1.5rem;
-  border-right: 1px solid #f3f4f6;
+  gap: 0.25rem;
+  min-width: 0; /* Text truncation fix */
 `
 
 const ProductName = styled.div`
   font-weight: 600;
   color: #111827;
   font-size: 1rem;
-  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `
 
-const Barcode = styled.div`
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+const BarcodeBadge = styled.span`
+  font-family: 'Monaco', 'Menlo', monospace;
   font-size: 0.75rem;
   color: #6b7280;
   background-color: #f3f4f6;
@@ -63,30 +69,26 @@ const Barcode = styled.div`
   width: fit-content;
 `
 
-const StatContainer = styled.div`
-  flex: 1;
+const StatColumn = styled.div<{ hiddenOnMobile?: boolean }>`
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 0 1.5rem;
-  border-right: 1px solid #f3f4f6;
+  gap: 0.25rem;
 
-  &:last-child {
-    border-right: none;
+  @media (max-width: 768px) {
+    ${props => props.hiddenOnMobile && `display: none;`}
   }
 `
 
 const StatLabel = styled.div`
   font-size: 0.75rem;
-  color: #6b7280;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
+  color: #9ca3af;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 `
 
 const StatValue = styled.div<{ isLow?: boolean }>`
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
   color: ${props => props.isLow ? '#dc2626' : '#111827'};
   display: flex;
@@ -94,16 +96,17 @@ const StatValue = styled.div<{ isLow?: boolean }>`
   gap: 0.5rem;
 `
 
-const LowStockBadge = styled.div`
-  display: flex;
+const LowStockBadge = styled.span`
+  display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   font-size: 0.75rem;
   color: #dc2626;
   background-color: #fef2f2;
   padding: 2px 8px;
-  border-radius: 12px;
+  border-radius: 9999px;
   border: 1px solid #fecaca;
+  white-space: nowrap;
 `
 
 export default function InventoryItem(props: { item: ProductResponse }) {
@@ -131,38 +134,40 @@ export default function InventoryItem(props: { item: ProductResponse }) {
     }).format(price);
   };
 
+  const isLowStock = stockLevel !== null && stockLevel < 10;
+
   return (
-    <Container>
-      <IconContainer>
+    <ItemContainer>
+      <IconBox>
         <TbPackage />
-      </IconContainer>
+      </IconBox>
       
-      <InfoContainer>
-        <ProductName>{props.item.name}</ProductName>
-        <Barcode>{props.item.product_bar_code}</Barcode>
-      </InfoContainer>
+      <MainInfo>
+        <ProductName title={props.item.name}>{props.item.name}</ProductName>
+        <BarcodeBadge>{props.item.product_bar_code}</BarcodeBadge>
+      </MainInfo>
 
-      <StatContainer>
-        <StatLabel>Selling Price</StatLabel>
+      <StatColumn hiddenOnMobile>
+        <StatLabel>Price</StatLabel>
         <StatValue>{formatPrice(props.item.price)}</StatValue>
-      </StatContainer>
+      </StatColumn>
 
-      <StatContainer>
-        <StatLabel>Current Stock</StatLabel>
-        <StatValue isLow={stockLevel !== null && stockLevel < 10}>
+      <StatColumn>
+        <StatLabel>Stock</StatLabel>
+        <StatValue isLow={isLowStock}>
           {stockLevel === null ? '-' : stockLevel}
-          {stockLevel !== null && stockLevel < 10 && (
+          {isLowStock && (
             <LowStockBadge>
-              <TbAlertTriangle /> Low
+              <TbAlertTriangle size={12} /> Low
             </LowStockBadge>
           )}
         </StatValue>
-      </StatContainer>
+      </StatColumn>
 
-      <StatContainer>
+      <StatColumn hiddenOnMobile>
         <StatLabel>Origin</StatLabel>
         <StatValue>{props.item.nation_of_origin || 'N/A'}</StatValue>
-      </StatContainer>
-    </Container>
+      </StatColumn>
+    </ItemContainer>
   )
 }

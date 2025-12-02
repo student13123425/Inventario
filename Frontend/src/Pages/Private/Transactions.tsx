@@ -1,31 +1,39 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
-import { TbPlus, TbArrowUpRight, TbArrowDownLeft, TbRotate, TbFilter } from 'react-icons/tb';
+import { TbPlus, TbArrowUpRight, TbArrowDownLeft, TbRotate, TbBox } from 'react-icons/tb';
 import { fetchTransactions, fetchSuppliers } from '../../script/network';
 import { getToken } from '../../script/utils';
 import type { TransactionResponse, SupplierResponse } from '../../script/objects';
 import LoadingCard from '../../Pages/Private/LoadingComponentInline';
 import AddTransactionModal from '../../Components/Transactions/AddTransactionModal';
 
-const Container = styled.div`
-  width: 100vw;
-  height: 100%;
+const PageContainer = styled.div`
+  width: 100%;
+  min-height: 100vh;
   background-color: #f9fafb;
-  padding: 2rem;
   font-family: 'Inter', sans-serif;
-  overflow-y: auto;
+  padding: 2rem 5%;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `;
 
 const ContentWrapper = styled.div`
   max-width: 1200px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 `;
 
-const Header = styled.div`
+const HeaderSection = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1.5rem;
 `;
 
 const TitleColumn = styled.div`
@@ -34,32 +42,57 @@ const TitleColumn = styled.div`
   gap: 0.5rem;
 `;
 
-const Title = styled.h1`
-  font-size: 2rem;
+const PageTitle = styled.h1`
+  font-size: 2.25rem;
   font-weight: 800;
   color: #111827;
   margin: 0;
+  letter-spacing: -0.025em;
+
+  @media (max-width: 768px) {
+    font-size: 1.75rem;
+  }
+`;
+
+const SubTitle = styled.p`
+  font-size: 1.125rem;
+  color: #6b7280;
+  margin: 0;
+`;
+
+const ActionsRow = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 const BalanceCard = styled.div`
   background: white;
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1.25rem;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  min-width: 140px;
 `;
 
 const BalanceLabel = styled.span`
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #6b7280;
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 `;
 
 const BalanceValue = styled.span<{ $isNegative: boolean }>`
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: ${props => props.$isNegative ? '#dc2626' : '#059669'};
 `;
@@ -71,13 +104,14 @@ const AddButton = styled.button`
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 
   &:hover {
     background-color: #4338ca;
@@ -85,32 +119,46 @@ const AddButton = styled.button`
   }
 `;
 
-const TableContainer = styled.div`
+const TableCard = styled.div`
   background: white;
   border-radius: 16px;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   overflow: hidden;
 `;
 
 const TableHeader = styled.div`
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1.5fr 1fr 1fr 1fr;
+  grid-template-columns: 1.5fr 1fr 2fr 1fr 1fr 100px;
   padding: 1rem 1.5rem;
   background-color: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
-  font-weight: 600;
-  color: #374151;
-  font-size: 0.875rem;
+  
+  span {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    span:nth-child(2), span:nth-child(6) { display: none; } /* Hide Type and Actions on smaller screens */
+  }
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr 1fr 1fr;
+    span:nth-child(4) { display: none; } /* Hide Payment on mobile */
+  }
 `;
 
 const TableRow = styled.div`
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1.5fr 1fr 1fr 1fr;
+  grid-template-columns: 1.5fr 1fr 2fr 1fr 1fr 100px;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid #f3f4f6;
   align-items: center;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   color: #111827;
   transition: background-color 0.1s;
 
@@ -121,13 +169,22 @@ const TableRow = styled.div`
   &:hover {
     background-color: #f9fafb;
   }
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    div:nth-child(2), div:nth-child(6) { display: none; }
+  }
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr 1fr 1fr;
+    span:nth-child(4) { display: none; }
+  }
 `;
 
 const TypeBadge = styled.span<{ type: string }>`
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.75rem;
+  padding: 0.25rem 0.625rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -135,17 +192,18 @@ const TypeBadge = styled.span<{ type: string }>`
 
   ${props => {
     switch (props.type) {
-      case 'Sale': return `background-color: #ecfdf5; color: #059669;`;
-      case 'Deposit': return `background-color: #ecfdf5; color: #059669;`;
-      case 'Purchase': return `background-color: #fef2f2; color: #dc2626;`;
-      case 'Withdrawal': return `background-color: #fff7ed; color: #c2410c;`;
-      default: return `background-color: #f3f4f6; color: #4b5563;`;
+      case 'Sale': return `background-color: #ecfdf5; color: #059669; border: 1px solid #d1fae5;`;
+      case 'Deposit': return `background-color: #ecfdf5; color: #059669; border: 1px solid #d1fae5;`;
+      case 'Purchase': return `background-color: #fef2f2; color: #dc2626; border: 1px solid #fee2e2;`;
+      case 'Withdrawal': return `background-color: #fff7ed; color: #ea580c; border: 1px solid #ffedd5;`;
+      default: return `background-color: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb;`;
     }
   }}
 `;
 
 const Amount = styled.span<{ $isPositive: boolean }>`
   font-weight: 600;
+  font-family: 'Inter', sans-serif;
   color: ${props => props.$isPositive ? '#059669' : '#dc2626'};
 `;
 
@@ -153,17 +211,20 @@ const PaymentStatus = styled.span<{ status: string }>`
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: ${props => props.status === 'paid' ? '#ecfdf5' : '#fffbeb'};
   color: ${props => props.status === 'paid' ? '#059669' : '#d97706'};
 `;
 
 const CounterButton = styled.button`
-  background: transparent;
+  background: white;
   border: 1px solid #e5e7eb;
   color: #6b7280;
-  padding: 0.4rem 0.75rem;
+  padding: 0.375rem 0.75rem;
   border-radius: 6px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -171,20 +232,21 @@ const CounterButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background-color: #f3f4f6;
+    background-color: #f9fafb;
     color: #111827;
     border-color: #d1d5db;
   }
 `;
 
 const EmptyState = styled.div`
-  padding: 4rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 4rem 2rem;
   color: #6b7280;
-  gap: 1rem;
+  gap: 1.5rem;
+  text-align: center;
 `;
 
 export default function Transactions() {
@@ -206,7 +268,6 @@ export default function Transactions() {
       ]);
 
       if (transResult.success) {
-        // Sort by date desc (newest first)
         const sorted = transResult.transactions.sort((a, b) => 
           new Date(b.TransactionDate).getTime() - new Date(a.TransactionDate).getTime()
         );
@@ -240,20 +301,9 @@ export default function Transactions() {
     fetchData();
   };
 
-  // Calculate Balance
   const currentBalance = useMemo(() => {
     return transactions.reduce((acc, curr) => {
-      // Logic for balance calculation:
-      // Sale (Paid) -> +Amount
-      // Deposit -> +Amount
-      // Purchase (Paid) -> -Amount
-      // Withdrawal -> -Amount
-      // Owed transactions do not affect cash balance immediately, but affect net worth?
-      // "add to you balance a sum ore remove from it" implies cash balance.
-      // Assuming 'paid' affects balance.
-      
-      if (curr.payment_type === 'owed') return acc; // Skip debt for cash balance
-
+      if (curr.payment_type === 'owed') return acc;
       if (curr.TransactionType === 'Sale' || curr.TransactionType === 'Deposit') {
         return acc + curr.amount;
       } else if (curr.TransactionType === 'Purchase' || curr.TransactionType === 'Withdrawal') {
@@ -266,7 +316,7 @@ export default function Transactions() {
   const getSupplierName = (id?: number) => {
     if (!id) return '-';
     const s = suppliers.find(sup => sup.ID === id);
-    return s ? s.Name : 'Unknown ID: ' + id;
+    return s ? s.Name : 'Unknown ID';
   };
 
   const formatDate = (dateStr: string) => {
@@ -278,80 +328,80 @@ export default function Transactions() {
   };
 
   return (
-    <>
-      <Container>
-        <ContentWrapper>
-          <Header>
-            <TitleColumn>
-              <Title>Transactions</Title>
-              <span style={{color: '#6b7280'}}>Manage sales, purchases, and operational funds.</span>
-            </TitleColumn>
-            <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
-              <BalanceCard>
-                <BalanceLabel>Current Balance</BalanceLabel>
-                <BalanceValue $isNegative={currentBalance < 0}>
-                  ${currentBalance.toFixed(2)}
-                </BalanceValue>
-              </BalanceCard>
-              <AddButton onClick={handleOpenModal}>
-                <TbPlus size={20} />
-                New Transaction
-              </AddButton>
-            </div>
-          </Header>
+    <PageContainer>
+      <ContentWrapper>
+        <HeaderSection>
+          <TitleColumn>
+            <PageTitle>Transactions</PageTitle>
+            <SubTitle>Monitor financial flow and operational expenses.</SubTitle>
+          </TitleColumn>
+          <ActionsRow>
+            <BalanceCard>
+              <BalanceLabel>Cash Balance</BalanceLabel>
+              <BalanceValue $isNegative={currentBalance < 0}>
+                ${currentBalance.toFixed(2)}
+              </BalanceValue>
+            </BalanceCard>
+            <AddButton onClick={handleOpenModal}>
+              <TbPlus size={18} />
+              New Transaction
+            </AddButton>
+          </ActionsRow>
+        </HeaderSection>
 
-          {loading ? (
-            <div style={{height: '200px'}}><LoadingCard msg="Loading Transactions..." /></div>
-          ) : (
-            <TableContainer>
-              <TableHeader>
-                <span>Date</span>
-                <span>Type</span>
-                <span>Source / Destination</span>
-                <span>Payment</span>
-                <span>Amount</span>
-                <span>Actions</span>
-              </TableHeader>
-              {transactions.length === 0 ? (
-                <EmptyState>
-                  <TbFilter size={48} color="#e5e7eb" />
-                  <span>No transactions found. Start by creating one.</span>
-                </EmptyState>
-              ) : (
-                transactions.map((t) => (
-                  <TableRow key={t.ID}>
-                    <span>{formatDate(t.TransactionDate)}</span>
-                    <div>
-                      <TypeBadge type={t.TransactionType}>
-                        {t.TransactionType === 'Sale' && <TbArrowDownLeft />}
-                        {t.TransactionType === 'Deposit' && <TbArrowDownLeft />}
-                        {t.TransactionType === 'Purchase' && <TbArrowUpRight />}
-                        {t.TransactionType === 'Withdrawal' && <TbArrowUpRight />}
-                        {t.TransactionType}
-                      </TypeBadge>
-                    </div>
-                    <span style={{fontWeight: 500}}>
-                      {t.TransactionType === 'Purchase' 
-                        ? (t.SupplierID ? getSupplierName(t.SupplierID) : 'General') 
-                        : (t.TransactionType === 'Sale' ? 'Client (Public)' : 'Operations')}
-                    </span>
-                    <PaymentStatus status={t.payment_type}>{t.payment_type}</PaymentStatus>
-                    <Amount $isPositive={['Sale', 'Deposit'].includes(t.TransactionType)}>
-                      {['Sale', 'Deposit'].includes(t.TransactionType) ? '+' : '-'}
-                      ${Math.abs(t.amount).toFixed(2)}
-                    </Amount>
-                    <div>
-                      <CounterButton onClick={() => handleCounter(t)}>
-                        <TbRotate size={14} /> Counter
-                      </CounterButton>
-                    </div>
-                  </TableRow>
-                ))
-              )}
-            </TableContainer>
-          )}
-        </ContentWrapper>
-      </Container>
+        {loading ? (
+          <div style={{height: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+            <LoadingCard msg="Loading Financial Data..." />
+          </div>
+        ) : (
+          <TableCard>
+            <TableHeader>
+              <span>Date</span>
+              <span>Type</span>
+              <span>Details (Source/Dest)</span>
+              <span>Status</span>
+              <span>Amount</span>
+              <span>Action</span>
+            </TableHeader>
+            {transactions.length === 0 ? (
+              <EmptyState>
+                <TbBox size={64} color="#d1d5db" />
+                <p>No transactions found. Create your first transaction to start tracking finances.</p>
+              </EmptyState>
+            ) : (
+              transactions.map((t) => (
+                <TableRow key={t.ID}>
+                  <span>{formatDate(t.TransactionDate)}</span>
+                  <div>
+                    <TypeBadge type={t.TransactionType}>
+                      {t.TransactionType === 'Sale' && <TbArrowDownLeft size={14} />}
+                      {t.TransactionType === 'Deposit' && <TbArrowDownLeft size={14} />}
+                      {t.TransactionType === 'Purchase' && <TbArrowUpRight size={14} />}
+                      {t.TransactionType === 'Withdrawal' && <TbArrowUpRight size={14} />}
+                      {t.TransactionType}
+                    </TypeBadge>
+                  </div>
+                  <span style={{fontWeight: 500}}>
+                    {t.TransactionType === 'Purchase' 
+                      ? (t.SupplierID ? getSupplierName(t.SupplierID) : 'General Expense') 
+                      : (t.TransactionType === 'Sale' ? 'Public Sale' : 'Operations Adjustment')}
+                  </span>
+                  <span><PaymentStatus status={t.payment_type}>{t.payment_type}</PaymentStatus></span>
+                  <Amount $isPositive={['Sale', 'Deposit'].includes(t.TransactionType)}>
+                    {['Sale', 'Deposit'].includes(t.TransactionType) ? '+' : '-'}
+                    ${Math.abs(t.amount).toFixed(2)}
+                  </Amount>
+                  <div>
+                    <CounterButton onClick={() => handleCounter(t)} title="Create inverse transaction">
+                      <TbRotate size={14} /> Counter
+                    </CounterButton>
+                  </div>
+                </TableRow>
+              ))
+            )}
+          </TableCard>
+        )}
+      </ContentWrapper>
       
       <AddTransactionModal
         isOpen={isModalOpen} 
@@ -360,10 +410,10 @@ export default function Transactions() {
         initialCounterData={counterData ? {
           TransactionType: counterData.TransactionType,
           payment_type: counterData.payment_type,
-          amount: counterData.amount, // Modal will inverse this logic visually
+          amount: counterData.amount,
           SupplierID: counterData.SupplierID
         } : undefined}
       />
-    </>
+    </PageContainer>
   );
 }

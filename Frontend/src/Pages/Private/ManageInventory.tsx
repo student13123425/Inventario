@@ -3,38 +3,39 @@ import styled from 'styled-components'
 import { fetchProducts } from '../../script/network';
 import { getToken } from '../../script/utils';
 import type { ProductResponse } from '../../script/objects';
-import LoadingComponent from './LoadingCard'; // Assuming you have this based on your ManageSupplyers
+import LoadingComponent from './LoadingCard';
 import { TbPlus, TbMinus, TbBox } from 'react-icons/tb';
 import SellStock from '../../Components/InventoryManagement/SellStock';
 import PurchaseStock from '../../Components/InventoryManagement/PurchaseStock';
 import InventoryItem from '../../Components/InventoryManagement/InventoryItem';
 
-const Container = styled.div`
-  width: 100vw;
+const PageContainer = styled.div`
+  width: 100%;
+  min-height: 100vh;
   background-color: #f9fafb;
   font-family: 'Inter', sans-serif;
-  min-height: 100vh;
+  padding: 2rem 5%;
+  box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `
 
-const ContainerInner = styled.div`
+const ContentWrapper = styled.div`
+  max-width: 1200px;
   margin: 0 auto;
-  width: 1200px;
-  max-width: 90vw;
   display: flex;
   flex-direction: column;
-  padding: 2rem 0;
   gap: 2rem;
-  
-  @media (max-width: 768px) {
-    max-width: 95vw;
-    padding: 1rem 0;
-  }
 `
 
 const HeaderSection = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1.5rem;
 `
 
 const PageTitle = styled.h1`
@@ -42,10 +43,15 @@ const PageTitle = styled.h1`
   font-weight: 800;
   color: #111827;
   margin: 0;
+  letter-spacing: -0.025em;
+
+  @media (max-width: 768px) {
+    font-size: 1.75rem;
+  }
 `
 
 const SubTitle = styled.p`
-  font-size: 1rem;
+  font-size: 1.125rem;
   color: #6b7280;
   margin: 0.5rem 0 0 0;
 `
@@ -53,6 +59,15 @@ const SubTitle = styled.p`
 const ActionButtons = styled.div`
   display: flex;
   gap: 1rem;
+  
+  @media (max-width: 640px) {
+    width: 100%;
+    
+    button {
+      flex: 1;
+      justify-content: center;
+    }
+  }
 `
 
 const ActionButton = styled.button<{ variant: 'in' | 'out' }>`
@@ -62,17 +77,22 @@ const ActionButton = styled.button<{ variant: 'in' | 'out' }>`
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.875rem;
   cursor: pointer;
   border: none;
   transition: all 0.2s ease;
   color: white;
   background-color: ${props => props.variant === 'in' ? '#4f46e5' : '#059669'};
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 
   &:hover {
     transform: translateY(-2px);
     background-color: ${props => props.variant === 'in' ? '#4338ca' : '#047857'};
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+  
+  &:active {
+    transform: translateY(0);
   }
 `
 
@@ -88,7 +108,7 @@ const Card = styled.div`
 `
 
 const CardHeader = styled.div`
-  padding: 1.25rem 2rem;
+  padding: 1.5rem 2rem;
   background-color: #ffffff;
   border-bottom: 1px solid #f3f4f6;
   font-weight: 700;
@@ -97,7 +117,6 @@ const CardHeader = styled.div`
 `
 
 const ListContent = styled.div`
-  padding: 1rem;
   min-height: 400px;
   background-color: #f9fafb;
 `
@@ -107,15 +126,17 @@ const EmptyState = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4rem;
+  padding: 4rem 2rem;
   color: #6b7280;
-  gap: 1rem;
+  gap: 1.5rem;
+  text-align: center;
 `
 
-const LoadingContinaer=styled.div`
-  width: 100%;
-  height: 100%;
-  flex: 1;
+const EmptyText = styled.p`
+  font-size: 1rem;
+  max-width: 400px;
+  line-height: 1.5;
+  margin: 0;
 `
 
 export default function ManageInventory() {
@@ -128,7 +149,6 @@ export default function ManageInventory() {
       const token = await getToken();
       if (token) {
         try {
-          // Fetch products (InventoryItem handles fetching individual stock counts)
           const res = await fetchProducts(token);
           if (res.success) {
             setProducts(res.products);
@@ -155,8 +175,8 @@ export default function ManageInventory() {
   }
 
   return (
-    <Container>
-      <ContainerInner>
+    <PageContainer>
+      <ContentWrapper>
         <HeaderSection>
           <div>
             <PageTitle>Inventory Management</PageTitle>
@@ -164,10 +184,10 @@ export default function ManageInventory() {
           </div>
           <ActionButtons>
             <ActionButton variant="in" onClick={() => setViewState('buy')}>
-              <TbPlus /> Purchase Stock
+              <TbPlus size={18} /> Purchase Stock
             </ActionButton>
             <ActionButton variant="out" onClick={() => setViewState('sell')}>
-              <TbMinus /> Register Sale
+              <TbMinus size={18} /> Register Sale
             </ActionButton>
           </ActionButtons>
         </HeaderSection>
@@ -176,22 +196,24 @@ export default function ManageInventory() {
           <CardHeader>Current Stock Levels</CardHeader>
           <ListContent>
             {products === null ? (
-              <LoadingContinaer>
               <LoadingComponent msg="Loading Inventory..." />
-              </LoadingContinaer>
             ) : products.length === 0 ? (
               <EmptyState>
-                <TbBox size={48} />
-                <div>No products found. Please create products in the Products page first.</div>
+                <TbBox size={64} color="#d1d5db" />
+                <EmptyText>
+                  No products found. Please go to the <strong>Products</strong> page to create your first item before managing stock.
+                </EmptyText>
               </EmptyState>
             ) : (
-              products.map((item) => (
-                <InventoryItem key={item.ID} item={item} />
-              ))
+              <div>
+                {products.map((item) => (
+                  <InventoryItem key={item.ID} item={item} />
+                ))}
+              </div>
             )}
           </ListContent>
         </Card>
-      </ContainerInner>
-    </Container>
+      </ContentWrapper>
+    </PageContainer>
   )
 }

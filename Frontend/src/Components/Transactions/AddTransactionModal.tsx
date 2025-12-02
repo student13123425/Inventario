@@ -18,22 +18,27 @@ const Overlay = styled.div<{ $isOpen: boolean }>`
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(17, 24, 39, 0.6); /* Darker overlay */
+  backdrop-filter: blur(4px);
   display: ${props => props.$isOpen ? 'flex' : 'none'};
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  backdrop-filter: blur(2px);
+  font-family: 'Inter', sans-serif;
+  padding: 1rem;
+  box-sizing: border-box;
 `;
 
 const ModalContainer = styled.div`
   background-color: #ffffff;
-  width: 90%;
+  width: 100%;
   max-width: 500px;
   border-radius: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   overflow: hidden;
-  font-family: 'Inter', sans-serif;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
 `;
 
 const Header = styled.div`
@@ -42,6 +47,7 @@ const Header = styled.div`
   align-items: center;
   padding: 1.5rem;
   border-bottom: 1px solid #e5e7eb;
+  background-color: #ffffff;
 `;
 
 const Title = styled.h2`
@@ -69,11 +75,13 @@ const CloseButton = styled.button`
   }
 `;
 
-const Form = styled.form`
+const ScrollableContent = styled.div`
   padding: 1.5rem;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  background-color: #f9fafb;
 `;
 
 const FormGroup = styled.div`
@@ -88,30 +96,41 @@ const Label = styled.label`
   color: #374151;
 `;
 
-const Select = styled.select`
-  padding: 0.75rem;
+const StyledSelect = styled.select`
+  width: 100%;
+  padding: 0.625rem 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  font-size: 0.95rem;
-  outline: none;
-  background-color: white;
-  transition: border-color 0.2s;
+  font-size: 0.875rem;
+  color: #111827;
+  background-color: #ffffff;
+  transition: all 0.2s ease;
 
   &:focus {
+    outline: none;
     border-color: #4f46e5;
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
   }
+  
+  &:disabled {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+  }
 `;
 
-const Input = styled.input`
-  padding: 0.75rem;
+const StyledInput = styled.input`
+  width: 100%;
+  padding: 0.625rem 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 8px;
-  font-size: 0.95rem;
-  outline: none;
-  transition: border-color 0.2s;
+  font-size: 0.875rem;
+  color: #111827;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
 
   &:focus {
+    outline: none;
     border-color: #4f46e5;
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
   }
@@ -122,19 +141,21 @@ const DropdownWrapper = styled.div`
   position: relative;
 `;
 
-const DropdownHeader = styled.div<{ $isOpen: boolean }>`
-  padding: 0.75rem;
+const DropdownHeader = styled.div<{ $isOpen: boolean; $disabled?: boolean }>`
+  padding: 0.625rem 0.75rem;
   border: 1px solid ${props => props.$isOpen ? '#4f46e5' : '#d1d5db'};
   border-radius: 8px;
-  background-color: white;
+  background-color: ${props => props.$disabled ? '#f3f4f6' : '#ffffff'};
+  color: ${props => props.$disabled ? '#9ca3af' : '#111827'};
   display: flex;
   justify-content: space-between;
   align-items: center;
-  cursor: pointer;
+  cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s;
+  font-size: 0.875rem;
 
   &:hover {
-    border-color: #9ca3af;
+    border-color: ${props => props.$disabled ? '#d1d5db' : '#9ca3af'};
   }
 `;
 
@@ -147,7 +168,7 @@ const DropdownList = styled.div`
   background-color: white;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   max-height: 200px;
   overflow-y: auto;
   z-index: 50;
@@ -159,55 +180,48 @@ const DropdownItem = styled.div<{ $isSelected: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 0.875rem;
   background-color: ${props => props.$isSelected ? '#f3f4f6' : 'transparent'};
   color: ${props => props.$isSelected ? '#4f46e5' : '#111827'};
+  font-weight: ${props => props.$isSelected ? 500 : 400};
 
   &:hover {
     background-color: #f9fafb;
   }
 `;
 
-const ButtonGroup = styled.div`
+const Footer = styled.div`
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-`;
-
-const CancelButton = styled.button`
-  flex: 1;
-  padding: 0.75rem;
+  justify-content: flex-end;
+  gap: 0.75rem;
   background-color: #ffffff;
-  border: 1px solid #d1d5db;
-  color: #374151;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: #f9fafb;
-    border-color: #9ca3af;
-  }
 `;
 
-const SubmitButton = styled.button`
-  flex: 1;
-  padding: 0.75rem;
-  background-color: #4f46e5;
-  border: none;
-  color: white;
+const Button = styled.button<{ primary?: boolean }>`
+  padding: 0.625rem 1.25rem;
   border-radius: 8px;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  display: flex; align-items: center; justify-content: center;
+  
+  background-color: ${props => props.primary ? '#4f46e5' : '#ffffff'};
+  color: ${props => props.primary ? '#ffffff' : '#374151'};
+  border: ${props => props.primary ? '1px solid transparent' : '1px solid #d1d5db'};
+  box-shadow: ${props => props.primary ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none'};
 
   &:hover {
-    background-color: #4338ca;
+    background-color: ${props => props.primary ? '#4338ca' : '#f9fafb'};
+    transform: translateY(-1px);
   }
-
+  
   &:disabled {
-    background-color: #9ca3af;
+    opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
   }
 `;
 
@@ -219,12 +233,10 @@ export default function AddTransactionModal({ isOpen, onClose, onSuccess, initia
   const [transactionDate, setTransactionDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [suppliers, setSuppliers] = useState<SupplierResponse[]>([]);
   
-  // Custom Dropdown State
   const [isSupplierDropdownOpen, setIsSupplierDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Reset or Initialize form
     if (isOpen) {
       const loadSuppliers = async () => {
         try {
@@ -243,15 +255,12 @@ export default function AddTransactionModal({ isOpen, onClose, onSuccess, initia
       loadSuppliers();
 
       if (initialCounterData) {
-        // Pre-fill for countering logic
         setType(initialCounterData.TransactionType || 'Sale');
         setPaymentType(initialCounterData.payment_type || 'paid');
-        // Counter amount: if original was 500, pre-fill -500
         setAmount(initialCounterData.amount ? (initialCounterData.amount * -1).toString() : '');
         setSupplierId(initialCounterData.SupplierID || null);
         setTransactionDate(new Date().toISOString().split('T')[0]);
       } else {
-        // Default new transaction
         setType('Sale');
         setPaymentType('paid');
         setAmount('');
@@ -261,7 +270,6 @@ export default function AddTransactionModal({ isOpen, onClose, onSuccess, initia
     }
   }, [isOpen, initialCounterData]);
 
-  // Click outside listener for dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -272,8 +280,7 @@ export default function AddTransactionModal({ isOpen, onClose, onSuccess, initia
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     const token = getToken();
     if (!token) return;
 
@@ -284,11 +291,9 @@ export default function AddTransactionModal({ isOpen, onClose, onSuccess, initia
         amount: parseFloat(amount),
         TransactionDate: transactionDate,
         SupplierID: (type === 'Purchase' && supplierId) ? supplierId : undefined,
-        // CustomerID is handled as generic public source for Sales
       };
 
-      const result = await createTransaction(token, payload);
-      // Assuming result returns the batch response or success
+      await createTransaction(token, payload);
       onSuccess();
       onClose();
     } catch (error) {
@@ -312,19 +317,19 @@ export default function AddTransactionModal({ isOpen, onClose, onSuccess, initia
           <Title>{initialCounterData ? 'Counter Transaction' : 'New Transaction'}</Title>
           <CloseButton onClick={onClose}><TbX size={20} /></CloseButton>
         </Header>
-        <Form onSubmit={handleSubmit}>
+        <ScrollableContent>
           <FormGroup>
             <Label>Transaction Type</Label>
-            <Select 
+            <StyledSelect 
               value={type} 
               onChange={e => setType(e.target.value as any)}
-              disabled={!!initialCounterData} // Lock type if countering
+              disabled={!!initialCounterData} 
             >
               <option value="Sale">Receive Money (Sale)</option>
               <option value="Purchase">Pay/Owe Supplier (Purchase)</option>
               <option value="Deposit">Add to Balance (Deposit)</option>
               <option value="Withdrawal">Remove from Balance (Withdrawal)</option>
-            </Select>
+            </StyledSelect>
           </FormGroup>
 
           {type === 'Purchase' && (
@@ -334,8 +339,8 @@ export default function AddTransactionModal({ isOpen, onClose, onSuccess, initia
                 <DropdownWrapper ref={dropdownRef}>
                   <DropdownHeader 
                     $isOpen={isSupplierDropdownOpen} 
+                    $disabled={!!initialCounterData}
                     onClick={() => !initialCounterData && setIsSupplierDropdownOpen(!isSupplierDropdownOpen)}
-                    style={{ cursor: initialCounterData ? 'not-allowed' : 'pointer', opacity: initialCounterData ? 0.7 : 1 }}
                   >
                     <span>{getSupplierName(supplierId)}</span>
                     {!initialCounterData && <TbChevronDown />}
@@ -362,21 +367,21 @@ export default function AddTransactionModal({ isOpen, onClose, onSuccess, initia
 
               <FormGroup>
                 <Label>Payment Status</Label>
-                <Select 
+                <StyledSelect 
                   value={paymentType} 
                   onChange={e => setPaymentType(e.target.value as any)}
                   disabled={!!initialCounterData}
                 >
                   <option value="paid">Paid (Immediate Payment)</option>
                   <option value="owed">Owed (Credit/Debt)</option>
-                </Select>
+                </StyledSelect>
               </FormGroup>
             </>
           )}
 
           <FormGroup>
             <Label>Amount ($)</Label>
-            <Input 
+            <StyledInput 
               type="number" 
               step="0.01" 
               value={amount} 
@@ -384,26 +389,25 @@ export default function AddTransactionModal({ isOpen, onClose, onSuccess, initia
               placeholder={initialCounterData ? "e.g. -500" : "e.g. 500.00"}
               required 
             />
-            {initialCounterData && <span style={{fontSize: '0.75rem', color: '#6b7280'}}>Enter a negative value to reverse, or positive to adjust.</span>}
+            {initialCounterData && <span style={{fontSize: '0.75rem', color: '#6b7280'}}>Enter a negative value to reverse transaction.</span>}
           </FormGroup>
 
           <FormGroup>
             <Label>Date</Label>
-            <Input 
+            <StyledInput 
               type="date" 
               value={transactionDate} 
               onChange={e => setTransactionDate(e.target.value)}
               required 
             />
           </FormGroup>
-
-          <ButtonGroup>
-            <CancelButton type="button" onClick={onClose}>Cancel</CancelButton>
-            <SubmitButton type="submit">
-              {initialCounterData ? 'Post Counter Transaction' : 'Create Transaction'}
-            </SubmitButton>
-          </ButtonGroup>
-        </Form>
+        </ScrollableContent>
+        <Footer>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button primary onClick={handleSubmit} disabled={!amount}>
+            {initialCounterData ? 'Post Counter' : 'Create'}
+          </Button>
+        </Footer>
       </ModalContainer>
     </Overlay>
   );

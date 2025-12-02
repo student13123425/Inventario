@@ -6,26 +6,32 @@ import { getToken } from '../../script/utils'
 import type { SupplierResponse, SupplierProductResponse } from '../../script/objects'
 import ConfirmModal from '../ConfirmModal'
 
-// Using same styled components patterns as your Design System
 const Overlay = styled.div`
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(17, 24, 39, 0.6); /* Darker overlay */
+  backdrop-filter: blur(4px);
   display: flex; justify-content: center; align-items: center; z-index: 1000;
   font-family: 'Inter', sans-serif;
+  padding: 1rem;
+  box-sizing: border-box;
 `
 
 const ModalCard = styled.div`
-  width: 90%; max-width: 600px;
-  background-color: #ffffff; border-radius: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;
+  width: 100%; max-width: 600px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  max-height: 90vh;
 `
 
 const Header = styled.div`
-  padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
   display: flex; justify-content: space-between; align-items: center;
-  background-color: #f9fafb;
+  background-color: #ffffff;
 `
 
 const Title = styled.h2`
@@ -34,7 +40,10 @@ const Title = styled.h2`
 `
 
 const Content = styled.div`
-  padding: 2rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem;
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 1.5rem;
+  background-color: #f9fafb;
 `
 
 const FormGroup = styled.div`
@@ -45,45 +54,101 @@ const Label = styled.label`
   font-size: 0.875rem; font-weight: 500; color: #374151;
 `
 
-const Select = styled.select`
-  padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px;
-  font-size: 1rem; color: #111827; background-color: white;
-  &:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+const StyledSelect = styled.select`
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #111827;
+  background-color: #ffffff;
+  transition: all 0.2s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+  &:disabled {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+  }
 `
 
-const Input = styled.input`
-  padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 8px;
-  font-size: 1rem; color: #111827;
-  &:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+const StyledInput = styled.input`
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #111827;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+`
+
+const GridRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
 `
 
 const CostSummary = styled.div`
-  background-color: #f3f4f6; padding: 1rem; border-radius: 8px;
+  background-color: #eff6ff;
+  border: 1px solid #dbeafe;
+  padding: 1rem;
+  border-radius: 8px;
   display: flex; justify-content: space-between; align-items: center;
-  margin-top: 1rem; border: 1px solid #e5e7eb;
 `
 
-const TotalCost = styled.span`
-  font-size: 1.25rem; font-weight: 700; color: #4f46e5;
+const TotalCostLabel = styled.span`
+  color: #1e40af; font-size: 0.875rem; font-weight: 500;
 `
 
-const ButtonGroup = styled.div`
-  padding: 1.5rem 2rem; border-top: 1px solid #e5e7eb;
-  display: flex; justify-content: flex-end; gap: 1rem; background-color: #f9fafb;
+const TotalCostValue = styled.span`
+  font-size: 1.25rem; font-weight: 700; color: #1e40af;
+`
+
+const Footer = styled.div`
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex; justify-content: flex-end; gap: 0.75rem;
+  background-color: #ffffff;
 `
 
 const Button = styled.button<{ primary?: boolean }>`
-  padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; font-size: 1rem;
-  cursor: pointer; transition: all 0.2s ease;
-  background-color: ${props => props.primary ? '#4f46e5' : 'white'};
-  color: ${props => props.primary ? 'white' : '#374151'};
-  border: ${props => props.primary ? 'none' : '1px solid #d1d5db'};
+  padding: 0.625rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex; align-items: center; gap: 0.5rem;
+  
+  background-color: ${props => props.primary ? '#4f46e5' : '#ffffff'};
+  color: ${props => props.primary ? '#ffffff' : '#374151'};
+  border: ${props => props.primary ? '1px solid transparent' : '1px solid #d1d5db'};
+  box-shadow: ${props => props.primary ? '0 1px 2px 0 rgba(0, 0, 0, 0.05)' : 'none'};
 
   &:hover {
     background-color: ${props => props.primary ? '#4338ca' : '#f9fafb'};
     transform: translateY(-1px);
   }
-  &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
 `
 
 interface PurchaseStockProps {
@@ -98,7 +163,7 @@ export default function PurchaseStock({ onClose, onSuccess }: PurchaseStockProps
   const [selectedSupplierId, setSelectedSupplierId] = useState<number | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<SupplierProductResponse | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
-  const [salePrice, setSalePrice] = useState<number>(0); // Price we sell to public
+  const [salePrice, setSalePrice] = useState<number>(0);
   
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
@@ -136,7 +201,7 @@ export default function PurchaseStock({ onClose, onSuccess }: PurchaseStockProps
   const handleProductChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const prod = products.find(p => p.ID === Number(e.target.value));
     setSelectedProduct(prod || null);
-    if (prod) setSalePrice(prod.price); // Default to current product price
+    if (prod) setSalePrice(prod.price);
   }
 
   const handleSubmit = async () => {
@@ -146,7 +211,6 @@ export default function PurchaseStock({ onClose, onSuccess }: PurchaseStockProps
     if (!token) return;
 
     try {
-      // 1. Add Inventory Batch
       const purchasePrice = selectedProduct.supplier_price || 0;
       await addInventoryBatch(token, {
         ProductID: selectedProduct.ID,
@@ -155,10 +219,9 @@ export default function PurchaseStock({ onClose, onSuccess }: PurchaseStockProps
         quantity: quantity,
       });
 
-      // 2. Create Financial Transaction (Stock Out of money, Stock In of goods)
       await createTransaction(token, {
         TransactionType: 'Purchase',
-        payment_type: 'paid', // Assuming immediate payment for this MVP
+        payment_type: 'paid',
         amount: purchasePrice * quantity,
         SupplierID: selectedSupplierId,
         TransactionDate: new Date().toISOString()
@@ -185,30 +248,30 @@ export default function PurchaseStock({ onClose, onSuccess }: PurchaseStockProps
           <Content>
             <FormGroup>
               <Label>Select Supplier</Label>
-              <Select onChange={handleSupplierChange} value={selectedSupplierId || ''}>
+              <StyledSelect onChange={handleSupplierChange} value={selectedSupplierId || ''}>
                 <option value="">-- Choose Supplier --</option>
                 {suppliers.map(s => <option key={s.ID} value={s.ID}>{s.Name}</option>)}
-              </Select>
+              </StyledSelect>
             </FormGroup>
 
             <FormGroup>
-              <Label>Select Product (Linked to Supplier)</Label>
-              <Select onChange={handleProductChange} disabled={!selectedSupplierId} value={selectedProduct?.ID || ''}>
+              <Label>Select Product</Label>
+              <StyledSelect onChange={handleProductChange} disabled={!selectedSupplierId} value={selectedProduct?.ID || ''}>
                 <option value="">-- Choose Product --</option>
                 {products.map(p => (
                   <option key={p.ID} value={p.ID}>
                     {p.name} (Cost: ${p.supplier_price})
                   </option>
                 ))}
-              </Select>
+              </StyledSelect>
             </FormGroup>
 
             {selectedProduct && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <GridRow>
                   <FormGroup>
                     <Label>Quantity Received</Label>
-                    <Input 
+                    <StyledInput 
                       type="number" 
                       min="1" 
                       value={quantity} 
@@ -217,28 +280,28 @@ export default function PurchaseStock({ onClose, onSuccess }: PurchaseStockProps
                   </FormGroup>
                   <FormGroup>
                     <Label>Public Selling Price ($)</Label>
-                    <Input 
+                    <StyledInput 
                       type="number" 
                       step="0.01" 
                       value={salePrice} 
                       onChange={e => setSalePrice(parseFloat(e.target.value))} 
                     />
                   </FormGroup>
-                </div>
+                </GridRow>
                 
                 <CostSummary>
-                  <span style={{color: '#374151'}}>Total Purchase Cost:</span>
-                  <TotalCost>${totalCost.toFixed(2)}</TotalCost>
+                  <TotalCostLabel>Total Cost (to Supplier)</TotalCostLabel>
+                  <TotalCostValue>${totalCost.toFixed(2)}</TotalCostValue>
                 </CostSummary>
               </>
             )}
           </Content>
-          <ButtonGroup>
+          <Footer>
             <Button onClick={onClose}>Cancel</Button>
             <Button primary disabled={!selectedProduct} onClick={() => setIsConfirmOpen(true)}>
               Confirm Purchase
             </Button>
-          </ButtonGroup>
+          </Footer>
         </ModalCard>
       </Overlay>
 
