@@ -1,5 +1,94 @@
 {
-  "timestamp": "2025-12-02T10:25:13.962Z",
-  "total_users": 0,
-  "users_analytics": []
+  "timestamp": "2025-12-02T17:20:04.476Z",
+  "total_users": 2,
+  "users_analytics": [
+    {
+      "user_id": 1,
+      "shop_name": "NiceShow",
+      "collection_date": "2025-12-02T17:20:04.378Z",
+      "total_inventory_value": 0,
+      "today_sales": 0,
+      "total_customers": 0,
+      "total_products": 0,
+      "pending_payments": 0,
+      "sales_trends": [],
+      "top_products": [],
+      "inventory_turnover": [],
+      "low_stock_alerts": [],
+      "inventory_valuation": [],
+      "profit_margin": {
+        "total_revenue": 0,
+        "total_cogs": 0,
+        "gross_profit": 0,
+        "gross_margin_percentage": 0
+      },
+      "daily_sales": {
+        "total": 0,
+        "date": "2025-12-02"
+      },
+      "payment_analysis": {
+        "total_owed": 0,
+        "total_paid": 0,
+        "outstanding_balance": 0
+      },
+      "customer_lifetime_value": [],
+      "supplier_performance": []
+    },
+    {
+      "user_id": 2,
+      "shop_name": "324tewt",
+      "collection_date": "2025-12-02T17:20:04.451Z",
+      "total_inventory_value": 3086922,
+      "today_sales": 120,
+      "total_customers": 0,
+      "total_products": 1,
+      "pending_payments": 0,
+      "sales_trends": [],
+      "top_products": [],
+      "inventory_turnover": [
+        {
+          "ID": 1,
+          "name": "32345",
+          "total_sold": 2,
+          "avg_inventory": 67107,
+          "turnover_rate": 0.000029803150192975396
+        }
+      ],
+      "low_stock_alerts": [],
+      "inventory_valuation": [
+        {
+          "product_id": 1,
+          "product_name": "32345",
+          "total_quantity": 134214,
+          "avg_purchase_price": 23,
+          "current_value": 3086922
+        }
+      ],
+      "profit_margin": {
+        "total_revenue": 0,
+        "total_cogs": 0,
+        "gross_profit": 0,
+        "gross_margin_percentage": 0
+      },
+      "daily_sales": {
+        "total": 120,
+        "date": "2025-12-02"
+      },
+      "payment_analysis": {
+        "total_owed": 0,
+        "total_paid": 3087088,
+        "outstanding_balance": 0
+      },
+      "customer_lifetime_value": [],
+      "supplier_performance": [
+        {
+          "ID": 1,
+          "Name": "3215235",
+          "total_purchases": 2,
+          "avg_lead_time": 7,
+          "on_time_deliveries": 0
+        }
+      ]
+    }
+  ]
 }
