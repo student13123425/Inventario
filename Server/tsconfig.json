@@ -1,17 +1,12 @@
 {
   "compilerOptions": {
-    /* Visit https://aka.ms/tsconfig.json to read more about this file */
-
-    /* Project settings */
-    "target": "ES2022",                    // Modern Node.js supports ES2022+
-    "module": "NodeNext",                  // Best for Node.js with ESM or CommonJS
+    "target": "ES2022",
+    "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "rootDir": "./src",                    // Source directory
-    "outDir": "./dest",                    // Your requested output folder
-    "declaration": true,                   // Generate .d.ts files (optional but useful)
-    "sourceMap": true,                     // Helpful for debugging
-
-    /* Strict type-checking */
+    "rootDir": "./",
+    "outDir": "./dist",
+    "declaration": true,
+    "sourceMap": true,
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -19,27 +14,25 @@
     "strictBindCallApply": true,
     "noImplicitThis": true,
     "useUnknownInCatchVariables": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-
-    /* Additional best practices */
-    "esModuleInterop": true,               // Allows `import express from "express"`
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "isolatedModules": true,               // Required for tools like tsx/babel
-
-    /* Node.js specific */
-    "lib": ["ES2023"]
+    "isolatedModules": true,
+    "lib": [
+      "ES2023"
+    ]
   },
   "include": [
-    "src/**/*"
+    "**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "dest",
     "dist",
+    "dest",
     "**/*.test.ts",
     "**/*.spec.ts"
   ]

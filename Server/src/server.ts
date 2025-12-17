@@ -61,11 +61,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = 3000;
 
-// Configuration
+const port = process.env.PORT || 3000;
+
 const STATS_FILE_PATH = path.join(__dirname, '../stats.json');
-const AUTO_SAVE_INTERVAL_HOURS = 6; // Auto-save stats every 6 hours
+const AUTO_SAVE_INTERVAL_HOURS = 6;
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -87,19 +87,42 @@ declare global {
   }
 }
 
-// ============================================
-// STATISTICS MANAGEMENT
-// ============================================
+async function serveCustomFile(res: express.Response, filePath: string) {
+  try {
+    const urlPath = path.resolve('./url.txt');
+    const absoluteFilePath = path.resolve(filePath);
+    
+    try {
+        await fs.access(absoluteFilePath);
+    } catch {
+        return res.status(404).send('File not found');
+    }
+    
+    let customUrl = 'http://localhost:3000';
+    try {
+        customUrl = await fs.readFile(urlPath, 'utf-8');
+    } catch {
+        
+    }
 
-// Function to collect and save statistics
+    const fileContent = await fs.readFile(absoluteFilePath, 'utf-8');
+    const processedContent = fileContent.replace(/http:\/\/localhost:3000/g, customUrl.trim());
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.send(processedContent);
+  } catch (error) {
+    console.error(`Error serving file ${filePath}:`, error);
+    res.status(500).send('Error loading application');
+  }
+}
+
+app.get('/', (req, res) => serveCustomFile(res, './Frontend/FrontEnd.html'));
+app.get('/Admin', (req, res) => serveCustomFile(res, './Frontend/Admin.html'));
+
 async function saveAllStatistics(): Promise<void> {
   try {
-    console.log('Starting statistics collection...');
-    
-    // Import dynamically to avoid circular dependencies
     const { db } = await import('./database_core.js');
     
-    // Get all users from main database
     const users = await new Promise<any[]>((resolve, reject) => {
       db.all('SELECT id, shop_name, folder_hash FROM users', [], (err, rows) => {
         if (err) reject(err);
@@ -109,11 +132,8 @@ async function saveAllStatistics(): Promise<void> {
     
     const usersAnalytics = [];
     
-    // Collect analytics for each user
     for (const user of users) {
       try {
-        console.log(`Collecting analytics for user: ${user.shop_name} (ID: ${user.id})`);
-        
         const analytics = await getUserAnalytics(
           user.folder_hash,
           user.id,
@@ -121,25 +141,18 @@ async function saveAllStatistics(): Promise<void> {
         );
         
         usersAnalytics.push(analytics);
-        
-        console.log(`Completed analytics for user: ${user.shop_name}`);
       } catch (userError) {
         console.error(`Failed to collect analytics for user ${user.id}:`, userError);
       }
     }
     
-    // Create statistics summary
     const summary = {
       timestamp: new Date().toISOString(),
       total_users: users.length,
       users_analytics: usersAnalytics
     };
     
-    // Save to JSON file
     await fs.writeFile(STATS_FILE_PATH, JSON.stringify(summary, null, 2), 'utf-8');
-    
-    console.log(`Statistics saved to ${STATS_FILE_PATH} at ${summary.timestamp}`);
-    console.log(`Collected analytics for ${usersAnalytics.length}/${users.length} users`);
     
   } catch (error) {
     console.error('Failed to save statistics:', error);
@@ -147,7 +160,6 @@ async function saveAllStatistics(): Promise<void> {
   }
 }
 
-// Schedule periodic statistics saving
 let statsInterval: NodeJS.Timeout | null = null;
 
 function startStatsCollection(intervalHours: number = AUTO_SAVE_INTERVAL_HOURS): void {
@@ -155,24 +167,18 @@ function startStatsCollection(intervalHours: number = AUTO_SAVE_INTERVAL_HOURS):
     clearInterval(statsInterval);
   }
   
-  // Save immediately on start
   saveAllStatistics().catch(console.error);
   
-  // Schedule periodic saves
   const intervalMs = intervalHours * 60 * 60 * 1000;
   statsInterval = setInterval(() => {
-    console.log(`Auto-saving statistics (every ${intervalHours} hours)...`);
     saveAllStatistics().catch(console.error);
   }, intervalMs);
-  
-  console.log(`Statistics collection scheduled every ${intervalHours} hours`);
 }
 
 function stopStatsCollection(): void {
   if (statsInterval) {
     clearInterval(statsInterval);
     statsInterval = null;
-    console.log('Statistics collection stopped');
   }
 }
 
@@ -186,19 +192,13 @@ async function triggerStatsSave(): Promise<boolean> {
   }
 }
 
-// Initialize database, Admin system and start auto-save
 initializeDatabase().then(async () => {
-  console.log('Database initialized successfully');
-  await initializeAdmin(); // Initialize Admin credentials
+  await initializeAdmin();
   startStatsCollection();
 }).catch((err) => {
   console.error('Failed to initialize:', err);
   process.exit(1);
 });
-
-// ============================================
-// ADMIN AUTHENTICATION ENDPOINTS
-// ============================================
 
 app.post('/api/admin/login', async (req, res) => {
     const { username, password } = req.body;
@@ -231,11 +231,6 @@ app.post('/api/admin/change-credentials', authenticateAdmin, async (req, res) =>
     }
 });
 
-// ============================================
-// PUBLIC ENDPOINTS (NO AUTHENTICATION REQUIRED)
-// ============================================
-
-// Registration
 app.post('/api/register', async (req, res) => {
   const { shopName, email, password } = req.body;
 
@@ -253,7 +248,6 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// Login
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -271,14 +265,8 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ============================================
-// SECURED ADMIN ANALYTICS ENDPOINTS
-// ============================================
-
-// Get aggregated stats - NOW SECURED
 app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
   try {
-    // Read the stats.json file
     const statsData = await fs.readFile(STATS_FILE_PATH, 'utf-8');
     const stats = JSON.parse(statsData);
     
@@ -289,7 +277,6 @@ app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
       users_analytics: stats.users_analytics || []
     });
   } catch (error: any) {
-    // If file doesn't exist or is empty, return empty stats
     if (error.code === 'ENOENT') {
       return res.json({
         success: true,
@@ -309,7 +296,6 @@ app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Manual trigger for statistics collection - NOW SECURED
 app.post('/api/admin/stats/collect', authenticateAdmin, async (req, res) => {
   try {
     const success = await triggerStatsSave();
@@ -336,10 +322,9 @@ app.post('/api/admin/stats/collect', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Get server health and info
 app.get('/api/public/server-info', async (req, res) => {
   try {
-    let statsInfo = { exists: false, size: 0, lastModified: null };
+    let statsInfo = { exists: false, size: 0, lastModified: null as string | null };
     
     try {
       const stats = await fs.stat(STATS_FILE_PATH);
@@ -349,7 +334,6 @@ app.get('/api/public/server-info', async (req, res) => {
         lastModified: stats.mtime.toISOString()
       };
     } catch (error) {
-      // File doesn't exist, that's okay
     }
     
     res.json({
@@ -377,11 +361,6 @@ app.get('/api/public/server-info', async (req, res) => {
   }
 });
 
-// ============================================
-// PROTECTED ENDPOINTS (AUTHENTICATION REQUIRED)
-// ============================================
-
-// Product management endpoints
 app.post('/api/products', authenticateToken, async (req, res) => {
   try {
     const { name, price, nation_of_origin, product_bar_code, expiration_date } = req.body;
@@ -464,7 +443,6 @@ app.delete('/api/products/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Inventory management endpoints
 app.post('/api/inventory', authenticateToken, async (req, res) => {
   try {
     const { ProductID, purchase_price, sale_price, quantity, expiration_date_per_batch } = req.body;
@@ -560,7 +538,6 @@ app.post('/api/inventory/reduce', authenticateToken, async (req, res) => {
   }
 });
 
-// Token validation endpoint
 app.get('/api/check-token', authenticateToken, async (req, res) => {
   try {
     res.json({ 
@@ -578,7 +555,6 @@ app.get('/api/check-token', authenticateToken, async (req, res) => {
   }
 });
 
-// Customer management endpoints
 app.post('/api/customers', authenticateToken, async (req, res) => {
   try {
     const { name, phone_number, email } = req.body;
@@ -643,7 +619,6 @@ app.delete('/api/customers/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Supplier management endpoints
 app.post('/api/suppliers', authenticateToken, async (req, res) => {
   try {
     const { Name, phone_number, email } = req.body;
@@ -708,7 +683,6 @@ app.delete('/api/suppliers/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Supplier-Product Linking endpoints
 app.post('/api/suppliers/link', authenticateToken, async (req, res) => {
   try {
     const { 
@@ -728,7 +702,6 @@ app.post('/api/suppliers/link', authenticateToken, async (req, res) => {
       });
     }
 
-    // Validate supplier price
     if (supplier_price === undefined || supplier_price === null) {
       return res.status(400).json({ 
         success: false, 
@@ -743,7 +716,6 @@ app.post('/api/suppliers/link', authenticateToken, async (req, res) => {
       });
     }
 
-    // Construct the pricing object expected by database_ops
     const pricingData = {
       supplier_price: Number(supplier_price),
       supplier_sku,
@@ -791,7 +763,6 @@ app.delete('/api/suppliers/:supplierId/products/:productId', authenticateToken, 
   }
 });
 
-// Transaction management endpoints
 app.post('/api/transactions', authenticateToken, async (req, res) => {
   try {
     const { TransactionType, payment_type, amount, SupplierID, CustomerID, TransactionDate } = req.body;
@@ -865,7 +836,6 @@ app.delete('/api/transactions/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Supplier-Product Relationship endpoints
 app.get('/api/suppliers/:id/products', authenticateToken, async (req, res) => {
   try {
     const supplierId = parseInt(req.params.id);
@@ -930,7 +900,6 @@ app.put('/api/suppliers/:supplierId/products/:productId/pricing', authenticateTo
   }
 });
 
-// Product-Inventory endpoints
 app.get('/api/products/:id/inventory', authenticateToken, async (req, res) => {
   try {
     const productId = parseInt(req.params.id);
@@ -947,7 +916,6 @@ app.get('/api/products/:id/inventory', authenticateToken, async (req, res) => {
   }
 });
 
-// Customer-Transaction endpoints
 app.get('/api/customers/:id/transactions', authenticateToken, async (req, res) => {
   try {
     const customerId = parseInt(req.params.id);
@@ -964,7 +932,6 @@ app.get('/api/customers/:id/transactions', authenticateToken, async (req, res) =
   }
 });
 
-// Supplier-Transaction endpoints
 app.get('/api/suppliers/:id/transactions', authenticateToken, async (req, res) => {
   try {
     const supplierId = parseInt(req.params.id);
@@ -981,11 +948,6 @@ app.get('/api/suppliers/:id/transactions', authenticateToken, async (req, res) =
   }
 });
 
-// ============================================
-// PROTECTED ANALYTICS ENDPOINTS
-// ============================================
-
-// Basic Analytics endpoints
 app.get('/api/analytics/low-stock', authenticateToken, async (req, res) => {
   try {
     const threshold = parseInt(req.query.threshold as string) || 10;
@@ -1010,7 +972,6 @@ app.get('/api/analytics/daily-sales', authenticateToken, async (req, res) => {
   }
 });
 
-// Advanced Analytics endpoints
 app.get('/api/analytics/sales-trends', authenticateToken, async (req, res) => {
   try {
     const { 
@@ -1151,7 +1112,6 @@ app.get('/api/analytics/complete', authenticateToken, async (req, res) => {
   }
 });
 
-// Quick stats dashboard endpoint
 app.get('/api/analytics/dashboard', authenticateToken, async (req, res) => {
   try {
     const [
@@ -1175,7 +1135,7 @@ app.get('/api/analytics/dashboard', authenticateToken, async (req, res) => {
         today_sales: dailySales,
         low_stock_count: lowStockAlerts.length,
         outstanding_balance: paymentAnalysis.outstanding_balance,
-        low_stock_alerts: lowStockAlerts.slice(0, 5) // Top 5 low stock items
+        low_stock_alerts: lowStockAlerts.slice(0, 5)
       }
     });
   } catch (error: any) {
@@ -1184,7 +1144,6 @@ app.get('/api/analytics/dashboard', authenticateToken, async (req, res) => {
   }
 });
 
-// Admin endpoints for statistics management - PROTECTED BY ADMIN AUTH
 app.post('/api/admin/save-stats', authenticateAdmin, async (req, res) => {
   try {
     const success = await triggerStatsSave();
@@ -1224,11 +1183,6 @@ app.post('/api/admin/start-stats-collection', authenticateAdmin, async (req, res
   }
 });
 
-// ============================================
-// GLOBAL ERROR HANDLER & SERVER START
-// ============================================
-
-// 404 handler for undefined routes
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -1238,7 +1192,6 @@ app.use((req, res) => {
   });
 });
 
-// Global error handler
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Unhandled error:', error);
   res.status(500).json({ 
@@ -1248,7 +1201,6 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
   });
 });
 
-// Graceful shutdown
 process.on('SIGINT', () => {
   console.log('Shutting down server...');
   stopStatsCollection();
@@ -1261,7 +1213,6 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-// Start server
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
   console.log(`Admin stats endpoint: http://localhost:${port}/api/admin/stats`);

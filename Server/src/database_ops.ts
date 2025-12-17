@@ -1,11 +1,11 @@
 import sqlite3 from 'sqlite3';
 import { 
-    connectToUserDatabase, 
-    Product, 
-    InventoryBatch, 
-    Customer, 
-    Supplier, 
-    TransactionRecord 
+  connectToUserDatabase, 
+  Product, 
+  InventoryBatch, 
+  Customer, 
+  Supplier, 
+  TransactionRecord 
 } from './database_core.js';
 import {
   SalesTrendData,
@@ -37,8 +37,6 @@ export async function createProduct(folderHash: string, product: Product): Promi
   });
 }
 
-// --- Supplier-Product Unlinking ---
-
 export async function unlinkSupplierFromProduct(
   folderHash: string, 
   supplierId: number, 
@@ -50,7 +48,6 @@ export async function unlinkSupplierFromProduct(
     db.serialize(() => {
       db.run('BEGIN TRANSACTION');
       
-      // 1. Delete from supplier_product_pricing first (due to foreign key constraints)
       db.run(
         'DELETE FROM supplier_product_pricing WHERE SupplierID = ? AND ProductID = ?',
         [supplierId, productId],
@@ -63,7 +60,6 @@ export async function unlinkSupplierFromProduct(
             return;
           }
           
-          // 2. Delete from supplier_products table
           db.run(
             'DELETE FROM supplier_products WHERE SupplierID = ? AND ProductID = ?',
             [supplierId, productId],
@@ -76,7 +72,6 @@ export async function unlinkSupplierFromProduct(
                 return;
               }
               
-              // Commit transaction
               db.run('COMMIT', (commitErr) => {
                 if (commitErr) {
                   db.close();
@@ -119,7 +114,6 @@ export async function getAllProducts(folderHash: string): Promise<Product[]> {
 export async function updateProduct(folderHash: string, id: number, product: Partial<Product>): Promise<void> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
-    // Filter out undefined values
     const keys = Object.keys(product).filter(k => product[k as keyof Product] !== undefined);
     if (keys.length === 0) {
         db.close();
@@ -148,8 +142,6 @@ export async function deleteProduct(folderHash: string, id: number): Promise<voi
   });
 }
 
-// --- Inventory Operations ---
-
 export async function addInventoryBatch(folderHash: string, batch: InventoryBatch): Promise<number> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
@@ -177,7 +169,6 @@ export async function updateInventoryBatch(folderHash: string, orderId: number, 
     const updates = keys.map(key => `${key} = ?`).join(', ');
     const values = [...keys.map(k => batch[k as keyof InventoryBatch]), orderId];
 
-    // Note: Primary key for inventory is OrderID
     db.run(`UPDATE inventory SET ${updates} WHERE OrderID = ?`, values, (err) => {
       db.close();
       if (err) reject(err);
@@ -279,8 +270,6 @@ export async function reduceInventoryFIFO(folderHash: string, productId: number,
   });
 }
 
-// --- Customer Operations ---
-
 export async function createCustomer(folderHash: string, customer: Customer): Promise<number> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
@@ -337,8 +326,6 @@ export async function deleteCustomer(folderHash: string, id: number): Promise<vo
   });
 }
 
-// --- Supplier Operations ---
-
 export async function createSupplier(folderHash: string, supplier: Supplier): Promise<number> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
@@ -387,7 +374,6 @@ export async function updateSupplier(folderHash: string, id: number, supplier: P
 export async function deleteSupplier(folderHash: string, id: number): Promise<void> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
-    // Note: This might fail if PRAGMA foreign_keys = ON and there are dependent transactions/products
     db.run('DELETE FROM suppliers WHERE ID = ?', [id], (err) => {
       db.close();
       if (err) reject(err);
@@ -412,10 +398,8 @@ export async function linkSupplierToProduct(
   
   return new Promise((resolve, reject) => {
     db.serialize(() => {
-      // Begin transaction
       db.run('BEGIN TRANSACTION');
       
-      // 1. First, verify that supplier and product exist
       db.get('SELECT 1 FROM suppliers WHERE ID = ?', [supplierId], (err, supplierRow) => {
         if (err) {
           db.run('ROLLBACK', () => {
@@ -433,7 +417,6 @@ export async function linkSupplierToProduct(
           return;
         }
         
-        // 2. Verify product exists
         db.get('SELECT 1 FROM products WHERE ID = ?', [productId], (err, productRow) => {
           if (err) {
             db.run('ROLLBACK', () => {
@@ -451,7 +434,6 @@ export async function linkSupplierToProduct(
             return;
           }
           
-          // 3. Link supplier to product in supplier_products table
           db.run(
             'INSERT OR IGNORE INTO supplier_products (SupplierID, ProductID) VALUES (?, ?)',
             [supplierId, productId],
@@ -464,8 +446,6 @@ export async function linkSupplierToProduct(
                 return;
               }
               
-              // 4. Create initial pricing record in supplier_product_pricing table
-              // Validate that supplier_price is provided
               const supplierPrice = initialPricing?.supplier_price;
               if (supplierPrice === undefined || supplierPrice === null) {
                 db.run('ROLLBACK', () => {
@@ -505,7 +485,6 @@ export async function linkSupplierToProduct(
                     return;
                   }
                   
-                  // Commit transaction
                   db.run('COMMIT', (commitErr) => {
                     if (commitErr) {
                       db.close();
@@ -525,19 +504,15 @@ export async function linkSupplierToProduct(
   });
 }
 
-// --- Transaction & Analytics Operations ---
-
 export async function createTransaction(folderHash: string, transaction: TransactionRecord): Promise<number> {
   const db = await connectToUserDatabase(folderHash);
   
   return new Promise((resolve, reject) => {
-    // First, ensure we have a default customer
     const ensureDefaultCustomer = (callback: (error: any, customerId: number) => void) => {
       db.get('SELECT ID FROM customers WHERE name = ?', ['Public/Client'], (err, row: any) => {
         if (err) return callback(err, 1);
         
         if (!row) {
-          // Create default customer if doesn't exist
           db.run(
             'INSERT INTO customers (name, email) VALUES (?, ?)',
             ['Public/Client', 'public@client.com'],
@@ -562,7 +537,6 @@ export async function createTransaction(folderHash: string, transaction: Transac
       const isClientSale = transaction.TransactionType === 'Sale';
       
       const supplierId = isSupplierTransaction ? transaction.SupplierID : null;
-      // Use provided CustomerID or default to public customer
       const customerId = isClientSale ? (transaction.CustomerID || defaultCustomerId) : null;
       
       db.run(
@@ -587,7 +561,6 @@ export async function createTransaction(folderHash: string, transaction: Transac
   });
 }
 
-// **UPDATED** to fetch all transactions and include SupplierName for the UI
 export async function getTransactionHistory(folderHash: string, transactionType?: 'Purchase' | 'Sale'): Promise<any[]> {
   const db = await connectToUserDatabase(folderHash);
   
@@ -681,7 +654,6 @@ export async function getDailySalesTotal(folderHash: string, date: string): Prom
     });
 }
 
-// Get all products for a specific supplier
 export async function getProductsBySupplier(folderHash: string, supplierId: number): Promise<any[]> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
@@ -706,7 +678,6 @@ export async function getProductsBySupplier(folderHash: string, supplierId: numb
   });
 }
 
-// Get all suppliers for a specific product
 export async function getSuppliersByProduct(folderHash: string, productId: number): Promise<any[]> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
@@ -731,7 +702,6 @@ export async function getSuppliersByProduct(folderHash: string, productId: numbe
   });
 }
 
-// Get all supplier-product relationships with details
 export async function getAllSupplierProductLinks(folderHash: string): Promise<any[]> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
@@ -759,7 +729,6 @@ export async function getAllSupplierProductLinks(folderHash: string): Promise<an
   });
 }
 
-// Update supplier product pricing
 export async function updateSupplierProductPricing(
   folderHash: string, 
   supplierId: number, 
@@ -796,7 +765,6 @@ export async function updateSupplierProductPricing(
   });
 }
 
-// Get inventory batches for a specific product
 export async function getInventoryByProduct(folderHash: string, productId: number): Promise<any[]> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
@@ -815,7 +783,6 @@ export async function getInventoryByProduct(folderHash: string, productId: numbe
   });
 }
 
-// Get transactions for a specific customer
 export async function getTransactionsByCustomer(folderHash: string, customerId: number): Promise<any[]> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
@@ -834,7 +801,6 @@ export async function getTransactionsByCustomer(folderHash: string, customerId: 
   });
 }
 
-// Get transactions for a specific supplier
 export async function getTransactionsBySupplier(folderHash: string, supplierId: number): Promise<any[]> {
   const db = await connectToUserDatabase(folderHash);
   return new Promise((resolve, reject) => {
@@ -853,11 +819,6 @@ export async function getTransactionsBySupplier(folderHash: string, supplierId: 
   });
 }
 
-// ============================================
-// ADVANCED ANALYTICS FUNCTIONS
-// ============================================
-
-// Sales Trends Analytics
 export async function getSalesTrends(
   folderHash: string, 
   period: 'daily' | 'weekly' | 'monthly',
@@ -906,7 +867,6 @@ export async function getSalesTrends(
   });
 }
 
-// Top Products Analytics
 export async function getTopProducts(
   folderHash: string, 
   limit: number = 10,
@@ -951,7 +911,6 @@ export async function getTopProducts(
   });
 }
 
-// Inventory Turnover Analytics
 export async function getInventoryTurnover(
   folderHash: string,
   productId?: number
@@ -1005,7 +964,6 @@ export async function getInventoryTurnover(
   });
 }
 
-// Profit Margin Analytics
 export async function getProfitMargin(
   folderHash: string,
   startDate: string,
@@ -1015,21 +973,18 @@ export async function getProfitMargin(
   
   const query = `
     SELECT 
-      -- Total revenue from sales
       (SELECT COALESCE(SUM(amount), 0) 
        FROM Transactions 
        WHERE TransactionType = 'Sale' 
          AND payment_type = 'paid'
          AND TransactionDate BETWEEN ? AND ?) as total_revenue,
       
-      -- Total cost of goods sold (COGS)
       (SELECT COALESCE(SUM(sm.Quantity * i.purchase_price), 0)
        FROM StockMovement sm
        JOIN inventory i ON sm.InventoryID = i.OrderID
        WHERE sm.movement_type = 'Out'
          AND sm.MovementDate BETWEEN ? AND ?) as total_cogs,
       
-      -- Gross profit
       (SELECT COALESCE(SUM(amount), 0) 
        FROM Transactions 
        WHERE TransactionType = 'Sale' 
@@ -1044,7 +999,7 @@ export async function getProfitMargin(
   `;
 
   return new Promise((resolve, reject) => {
-    db.get(query, [startDate, endDate, startDate, endDate, startDate, endDate, startDate, endDate], (err, row) => {
+    db.get(query, [startDate, endDate, startDate, endDate, startDate, endDate, startDate, endDate], (err, row: { total_revenue: number; total_cogs: number; gross_profit: number }) => {
       db.close();
       if (err) {
         reject(err);
@@ -1065,7 +1020,6 @@ export async function getProfitMargin(
   });
 }
 
-// Customer Lifetime Value Analytics
 export async function getCustomerLifetimeValue(folderHash: string): Promise<CustomerLifetimeValue[]> {
   const db = await connectToUserDatabase(folderHash);
   
@@ -1082,7 +1036,7 @@ export async function getCustomerLifetimeValue(folderHash: string): Promise<Cust
     FROM customers c
     LEFT JOIN Transactions t ON c.ID = t.CustomerID 
       AND t.TransactionType = 'Sale'
-    WHERE c.ID != 1 -- Exclude default customer
+    WHERE c.ID != 1 
     GROUP BY c.ID
     ORDER BY total_spent DESC
   `;
@@ -1096,7 +1050,6 @@ export async function getCustomerLifetimeValue(folderHash: string): Promise<Cust
   });
 }
 
-// Supplier Performance Analytics
 export async function getSupplierPerformance(folderHash: string): Promise<SupplierPerformance[]> {
   const db = await connectToUserDatabase(folderHash);
   
@@ -1124,7 +1077,6 @@ export async function getSupplierPerformance(folderHash: string): Promise<Suppli
   });
 }
 
-// Inventory Valuation Analytics
 export async function getInventoryValuation(folderHash: string): Promise<InventoryValuation[]> {
   const db = await connectToUserDatabase(folderHash);
   
@@ -1150,7 +1102,6 @@ export async function getInventoryValuation(folderHash: string): Promise<Invento
   });
 }
 
-// Payment Analysis
 export async function getPaymentAnalysis(folderHash: string): Promise<PaymentAnalysis> {
   const db = await connectToUserDatabase(folderHash);
   
@@ -1175,7 +1126,6 @@ export async function getPaymentAnalysis(folderHash: string): Promise<PaymentAna
   });
 }
 
-// Complete User Analytics
 export async function getUserAnalytics(
   folderHash: string,
   userId: number,
@@ -1213,10 +1163,8 @@ export async function getUserAnalytics(
       getPaymentAnalysis(folderHash)
     ]);
     
-    // Calculate total inventory value
     const totalInventoryValue = inventoryValuation.reduce((sum, item) => sum + item.current_value, 0);
     
-    // Get counts
     const db = await connectToUserDatabase(folderHash);
     const counts = await new Promise<{total_customers: number, total_products: number}>((resolve, reject) => {
       db.serialize(() => {
@@ -1248,31 +1196,25 @@ export async function getUserAnalytics(
       shop_name: shopName,
       collection_date: new Date().toISOString(),
       
-      // Key Metrics
       total_inventory_value: totalInventoryValue,
       today_sales: dailySales,
       total_customers: counts.total_customers,
       total_products: counts.total_products,
       pending_payments: paymentAnalysis.outstanding_balance,
       
-      // Sales Analytics
       sales_trends: salesTrends,
       top_products: topProducts,
       
-      // Inventory Analytics
       inventory_turnover: Array.isArray(inventoryTurnover) ? inventoryTurnover : [inventoryTurnover],
       low_stock_alerts: lowStockAlerts,
       inventory_valuation: inventoryValuation,
       
-      // Financial Analytics
       profit_margin: profitMargin,
       daily_sales: { total: dailySales, date: endDate },
       payment_analysis: paymentAnalysis,
       
-      // Customer Analytics
       customer_lifetime_value: customerLifetime,
       
-      // Supplier Analytics
       supplier_performance: supplierPerformance
     };
     
