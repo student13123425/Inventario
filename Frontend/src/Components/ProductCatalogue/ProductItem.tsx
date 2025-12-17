@@ -125,7 +125,6 @@ interface ProductItemProps {
   item: ProductResponse;
   index: number;
   setEditing: (item: ProductResponse) => void;
-  // Added onDelete prop
   onDelete: (item: ProductResponse) => void;
 }
 

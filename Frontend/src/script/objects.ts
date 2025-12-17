@@ -170,7 +170,7 @@ export interface SupplierLinkResponse {
 }
 
 export interface ProductInventoryResponse {
-  OrderID?: number;
+  OrderID: number;
   ProductID: number;
   purchase_price: number;
   sale_price: number;

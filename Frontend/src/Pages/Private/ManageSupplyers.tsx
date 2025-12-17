@@ -172,6 +172,14 @@ export default function ManageSupplyers(props: { setError: Function }) {
     getSuppliers(setSuppliers, props.setError as any);
   }, [props.setError]);
 
+  const handleDelete = async (id: number) => {
+    const token = await getToken();
+    if (token) {
+      await deleteSupplier(token, id);
+      await getSuppliers(setSuppliers, props.setError as any);
+    }
+  };
+
   if (suppliers === null) return <LoadingComponent msg='Loading Suppliers...' />;
 
   if (isAddingSupplier) {
@@ -197,12 +205,8 @@ export default function ManageSupplyers(props: { setError: Function }) {
         item={editingSupplier}
         onBack={() => setEditingSupplier(null)}
         onDelete={async () => {
-          const token = await getToken();
-          if (token) {
-            await deleteSupplier(token, editingSupplier.ID);
-            setEditingSupplier(null);
-            await getSuppliers(setSuppliers, props.setError as any);
-          }
+          await handleDelete(editingSupplier.ID);
+          setEditingSupplier(null);
         }}
         onUpdate={async (data) => {
           if (!data) return;
@@ -250,6 +254,7 @@ export default function ManageSupplyers(props: { setError: Function }) {
                     item={item} 
                     setEditing={setEditingSupplier} 
                     products={item.products} 
+                    onDelete={() => handleDelete(item.ID)}
                   />
                 ))}
               </div>

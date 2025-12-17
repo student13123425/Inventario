@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-12-02T17:20:04.476Z",
+  "timestamp": "2025-12-17T11:10:58.368Z",
   "total_users": 2,
   "users_analytics": [
     {
       "user_id": 1,
       "shop_name": "NiceShow",
-      "collection_date": "2025-12-02T17:20:04.378Z",
+      "collection_date": "2025-12-17T11:10:58.361Z",
       "total_inventory_value": 0,
       "today_sales": 0,
       "total_customers": 0,
@@ -24,7 +24,7 @@
       },
       "daily_sales": {
         "total": 0,
-        "date": "2025-12-02"
+        "date": "2025-12-17"
       },
       "payment_analysis": {
         "total_owed": 0,
@@ -37,14 +37,30 @@
     {
       "user_id": 2,
       "shop_name": "324tewt",
-      "collection_date": "2025-12-02T17:20:04.451Z",
+      "collection_date": "2025-12-17T11:10:58.368Z",
       "total_inventory_value": 3086922,
-      "today_sales": 120,
+      "today_sales": 0,
       "total_customers": 0,
       "total_products": 1,
       "pending_payments": 0,
-      "sales_trends": [],
-      "top_products": [],
+      "sales_trends": [
+        {
+          "period": "2025-12",
+          "total_sales": 120,
+          "transaction_count": 1
+        }
+      ],
+      "top_products": [
+        {
+          "ID": 1,
+          "name": "32345",
+          "product_bar_code": "235235",
+          "total_quantity_sold": 2,
+          "sale_occurrences": 1,
+          "avg_sale_price": 2,
+          "estimated_revenue": 4
+        }
+      ],
       "inventory_turnover": [
         {
           "ID": 1,
@@ -65,14 +81,14 @@
         }
       ],
       "profit_margin": {
-        "total_revenue": 0,
-        "total_cogs": 0,
-        "gross_profit": 0,
-        "gross_margin_percentage": 0
+        "total_revenue": 120,
+        "total_cogs": 46,
+        "gross_profit": 74,
+        "gross_margin_percentage": 61.67
       },
       "daily_sales": {
-        "total": 120,
-        "date": "2025-12-02"
+        "total": 0,
+        "date": "2025-12-17"
       },
       "payment_analysis": {
         "total_owed": 0,

@@ -226,7 +226,14 @@ export default function ManageProducts(props: { setError: Function }) {
                     setEditing={setIsEditingProduct} 
                     index={i} 
                     item={it} 
-                    key={i} 
+                    key={i}
+                    onDelete={async (item) => {
+                      const token = await getToken();
+                      if (token && item.ID) {
+                        await deleteProduct(token, item.ID);
+                        await getProducts(setProducts, props.setError);
+                      }
+                    }} 
                   />
                 ))}
               </div>

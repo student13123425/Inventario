@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import type { SupplierProductResponse, SupplierResponse } from '../../script/objects'
 import styled from 'styled-components'
 import { MdEdit, MdPhone, MdEmail, MdDelete, MdWarning } from 'react-icons/md'
@@ -118,7 +118,6 @@ interface SupplyerItemProps {
   item: SupplierResponse;
   index: number;
   setEditing: (item: any) => void;
-  // Added onDelete prop to handle the actual deletion logic in parent
   onDelete: (item: SupplierResponse) => void; 
   products: SupplierProductResponse[];
 }
@@ -126,6 +125,20 @@ interface SupplyerItemProps {
 export default function SupplyerItem({ item, index, setEditing, onDelete, products }: SupplyerItemProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const displayIndex = index + 1;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isDeleteModalOpen) {
+        setIsDeleteModalOpen(false);
+      }
+    };
+
+    if (isDeleteModalOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDeleteModalOpen]);
 
   const handleDeleteConfirm = () => {
     onDelete(item);

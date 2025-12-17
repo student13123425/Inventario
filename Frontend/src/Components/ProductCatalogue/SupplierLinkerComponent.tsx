@@ -146,8 +146,7 @@ interface Props {
   product: ProductResponse;
   setIsNewLink: (v: boolean) => void;
   ForceReload: () => Promise<void>;
-  // Accepts [ProductID, SupplierID]
-  setEdit: (ids: [number, number]) => void;
+  // setEdit: (ids: [number, number]) => void;
 }
 
 export default function SupplierLinkerComponent(props: Props) {
@@ -199,10 +198,9 @@ export default function SupplierLinkerComponent(props: Props) {
                   </Meta>
                 </Info>
                 <ActionButtons>
-                  {/* Pass [ProductID, SupplierID] */}
-                  <EditBtn onClick={() => props.setEdit([props.product.ID, s.ID])} title="Edit Link Details">
+                  {/* <EditBtn onClick={() => props.setEdit([props.product.ID, s.ID])} title="Edit Link Details">
                     <MdEdit size={18} />
-                  </EditBtn>
+                  </EditBtn> */}
                   <UnlinkBtn onClick={() => initiateUnlink(s)} title="Unlink Supplier">
                     <TbUnlink size={18} />
                   </UnlinkBtn>

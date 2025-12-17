@@ -21,6 +21,7 @@
     ProductSupplierResponse,
     SupplierProductResponse,
     SupplierLinkResponse,
+    ProductInventoryResponse,
   } from './objects';
 
   const base_url: string = 'http://localhost:3000';
@@ -303,10 +304,6 @@
       });
   }
 
-  // ==========================================
-  // Analytics & Utility
-  // ==========================================
-
   export function fetchLowStockAlerts(token: string, threshold: number = 10): Promise<{ success: boolean; lowStockAlerts: LowStockAlert[] }> {
     return axiosInstance.get<{ success: boolean; lowStockAlerts: LowStockAlert[] }>(`/api/analytics/low-stock?threshold=${threshold}`, { headers: getHeaders(token) })
       .then(response => response.data)
@@ -424,10 +421,6 @@ export function stockBoughtLast24hAnd30d(transactions: TransactionResponse[]): [
       });
   }
 
-  // ==========================================
-  // Product-Inventory Relationships
-  // ==========================================
-
   export function fetchProductInventory(token: string, productId: number): Promise<{ success: boolean; inventory: ProductInventoryResponse[] }> {
     return axiosInstance.get<{ success: boolean; inventory: ProductInventoryResponse[] }>(`/api/products/${productId}/inventory`, { headers: getHeaders(token) })
       .then(response => response.data)
@@ -436,9 +429,6 @@ export function stockBoughtLast24hAnd30d(transactions: TransactionResponse[]): [
       });
   }
 
-  // ==========================================
-  // Customer-Transaction Relationships
-  // ==========================================
 
   export function fetchCustomerTransactions(token: string, customerId: number): Promise<{ success: boolean; transactions: TransactionResponse[] }> {
     return axiosInstance.get<{ success: boolean; transactions: TransactionResponse[] }>(`/api/customers/${customerId}/transactions`, { headers: getHeaders(token) })
