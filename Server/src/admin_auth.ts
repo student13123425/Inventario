@@ -9,22 +9,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const ADMIN_FILE_PATH = path.join(__dirname, '../admin.json');
-const ADMIN_JWT_SECRET = 'admin_secret_key_distinct_from_user_secret_8473'; // Unique secret for admin
-const SALT_ROUNDS = 12;
+const ADMIN_JWT_SECRET = 'admin_secret_key_distinct_from_user_secret_8473'; 
+const SALT_ROUNDS = 10;
 
 interface AdminConfig {
     username: string;
     password_hash: string;
 }
 
-// Initialize admin.json with default credentials if it doesn't exist
 export async function initializeAdmin() {
     try {
         await fs.access(ADMIN_FILE_PATH);
-        // File exists, verify structure or do nothing
     } catch {
         console.log('Admin config not found. Creating default admin.json...');
-        // Default: Admin / 123
         const defaultPassword = '123';
         const passwordHash = await bcrypt.hash(defaultPassword, SALT_ROUNDS);
         
@@ -38,18 +35,15 @@ export async function initializeAdmin() {
     }
 }
 
-// Generate Admin Token
 export function generateAdminToken(username: string): string {
     return jwt.sign({ username, role: 'admin' }, ADMIN_JWT_SECRET, { expiresIn: '4h' });
 }
 
-// Admin Login Logic
 export async function loginAdmin(username: string, password: string): Promise<{ success: boolean; token?: string; error?: string }> {
     try {
         const data = await fs.readFile(ADMIN_FILE_PATH, 'utf-8');
         const config: AdminConfig = JSON.parse(data);
 
-        // Simple username check (case-sensitive usually, but could be normalized)
         if (username !== config.username) {
             return { success: false, error: 'Invalid credentials' };
         }
@@ -67,7 +61,6 @@ export async function loginAdmin(username: string, password: string): Promise<{ 
     }
 }
 
-// Change Admin Credentials
 export async function changeAdminCredentials(
     currentUsername: string, 
     currentPassword: string, 
@@ -75,11 +68,9 @@ export async function changeAdminCredentials(
     newPassword: string
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        // 1. Read existing config
         const data = await fs.readFile(ADMIN_FILE_PATH, 'utf-8');
         const config: AdminConfig = JSON.parse(data);
 
-        // 2. Verify current credentials
         if (currentUsername !== config.username) {
             return { success: false, error: 'Current username incorrect' };
         }
@@ -89,10 +80,8 @@ export async function changeAdminCredentials(
             return { success: false, error: 'Current password incorrect' };
         }
 
-        // 3. Hash new password
         const newHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
         
-        // 4. Save new config
         const newConfig: AdminConfig = {
             username: newUsername,
             password_hash: newHash
@@ -109,7 +98,6 @@ export async function changeAdminCredentials(
     }
 }
 
-// Middleware to protect routes
 export function authenticateAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
@@ -123,7 +111,6 @@ export function authenticateAdmin(req: express.Request, res: express.Response, n
             return res.status(403).json({ success: false, error: 'Invalid or expired admin token' });
         }
         
-        // Ensure the token role is admin
         if (decoded.role !== 'admin') {
             return res.status(403).json({ success: false, error: 'Insufficient permissions' });
         }

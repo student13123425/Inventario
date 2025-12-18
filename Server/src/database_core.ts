@@ -7,17 +7,13 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// UPDATED: Check for Azure environment
 const isAzure = process.env.WEBSITE_SITE_NAME !== undefined;
 
-// UPDATED: Use /home/data on Azure, otherwise keep local relative path
 const dbFolder = isAzure ? '/home/data' : join(__dirname, '..');
 const dbPath = join(dbFolder, 'users.db');
 
-// UPDATED: Ensure dataPath is also persistent (on Azure it will be /home/data/data)
 export const dataPath = join(dbFolder, 'data');
 
-// UPDATED: Ensure the directory exists (Critical for first run on Azure)
 if (isAzure && !fs.existsSync(dbFolder)) {
     try {
         fs.mkdirSync(dbFolder, { recursive: true });
@@ -32,6 +28,8 @@ export const db = new sqlite3.Database(dbPath, (err) => {
     console.error('Error opening database:', err.message);
   } else {
     console.log('Connected to the SQLite database at', dbPath);
+    db.configure('busyTimeout', 5000);
+    db.run('PRAGMA journal_mode = WAL;'); 
   }
 });
 
@@ -147,7 +145,7 @@ export async function createUser(
     await mkdir(userFolderPath, { recursive: true });
     await mkdir(`${userFolderPath}/images`, { recursive: true });
     
-    init_user_data(`${userFolderPath}/user.db`);
+    await init_user_data(`${userFolderPath}/user.db`);
 
     return await new Promise<number>((resolve, reject) => {
       db.run(
@@ -164,126 +162,114 @@ export async function createUser(
   }
 }
 
-export function init_user_data(path: string) {
-    const db = new sqlite3.Database(path);
+function runUserSchema(db: sqlite3.Database): Promise<void> {
+    return new Promise((resolve, reject) => {
+        db.serialize(() => {
+            db.configure('busyTimeout', 5000);
+            db.run('PRAGMA journal_mode = WAL;');
+            db.run("PRAGMA foreign_keys = ON;");
+            
+            const tables = [
+                `CREATE TABLE IF NOT EXISTS suppliers (
+                    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Name TEXT NOT NULL,
+                    phone_number TEXT,
+                    email TEXT
+                )`,
+                `CREATE TABLE IF NOT EXISTS products (
+                    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    price REAL NOT NULL,
+                    nation_of_origin TEXT,
+                    product_bar_code TEXT UNIQUE,
+                    expiration_date INTEGER
+                )`,
+                `CREATE TABLE IF NOT EXISTS customers (
+                    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    phone_number TEXT,
+                    email TEXT
+                )`,
+                `CREATE TABLE IF NOT EXISTS supplier_products (
+                    SupplierID INTEGER NOT NULL,
+                    ProductID INTEGER NOT NULL,
+                    PRIMARY KEY (SupplierID, ProductID),
+                    FOREIGN KEY (SupplierID) REFERENCES suppliers(ID) ON DELETE CASCADE,
+                    FOREIGN KEY (ProductID) REFERENCES products(ID) ON DELETE CASCADE
+                )`,
+                `CREATE TABLE IF NOT EXISTS supplier_product_pricing (
+                    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    SupplierID INTEGER NOT NULL,
+                    ProductID INTEGER NOT NULL,
+                    supplier_price REAL NOT NULL DEFAULT 0,
+                    supplier_sku TEXT,
+                    min_order_quantity INTEGER DEFAULT 1,
+                    lead_time_days INTEGER DEFAULT 7,
+                    is_active BOOLEAN DEFAULT 1,
+                    last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (SupplierID) REFERENCES suppliers(ID) ON DELETE CASCADE,
+                    FOREIGN KEY (ProductID) REFERENCES products(ID) ON DELETE CASCADE,
+                    FOREIGN KEY (SupplierID, ProductID) REFERENCES supplier_products(SupplierID, ProductID) ON DELETE CASCADE,
+                    UNIQUE(SupplierID, ProductID)
+                )`,
+                `CREATE TABLE IF NOT EXISTS inventory (
+                    OrderID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ProductID INTEGER NOT NULL,
+                    purchase_price REAL NOT NULL,
+                    sale_price REAL NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    expiration_date_per_batch TEXT,
+                    FOREIGN KEY (ProductID) REFERENCES products(ID) ON DELETE CASCADE
+                )`,
+                `CREATE TABLE IF NOT EXISTS Transactions (
+                    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    TransactionType TEXT NOT NULL CHECK (TransactionType IN ('Purchase', 'Sale', 'Deposit', 'Withdrawal')),
+                    payment_type TEXT NOT NULL CHECK (payment_type IN ('paid', 'owed')),
+                    amount REAL NOT NULL,
+                    SupplierID INTEGER,
+                    CustomerID INTEGER,
+                    TransactionDate TEXT NOT NULL,
+                    notes TEXT,
+                    FOREIGN KEY (SupplierID) REFERENCES suppliers(ID),
+                    FOREIGN KEY (CustomerID) REFERENCES customers(ID)
+                )`,
+                `CREATE TABLE IF NOT EXISTS StockMovement (
+                    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    movement_type TEXT NOT NULL CHECK (movement_type IN ('In', 'Out')),
+                    Quantity INTEGER NOT NULL,
+                    MovementDate TEXT NOT NULL,
+                    InventoryID INTEGER NOT NULL,
+                    FOREIGN KEY (InventoryID) REFERENCES inventory(OrderID)
+                )`
+            ];
 
-    db.serialize(() => {
-        db.run("PRAGMA foreign_keys = ON;");
-        
-        db.run(`
-            CREATE TABLE IF NOT EXISTS suppliers (
-                ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                Name TEXT NOT NULL,
-                phone_number TEXT,
-                email TEXT
-            )
-        `);
+            tables.forEach(sql => db.run(sql));
 
-        db.run(`
-            CREATE TABLE IF NOT EXISTS products (
-                ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                price REAL NOT NULL,
-                nation_of_origin TEXT,
-                product_bar_code TEXT UNIQUE,
-                expiration_date INTEGER
-            )
-        `);
+            db.run(`
+                INSERT OR IGNORE INTO customers (ID, name, email, phone_number)
+                VALUES (1, 'Public/Client', 'public@client.com', 'N/A')
+            `);
 
-        db.run(`
-            CREATE TABLE IF NOT EXISTS customers (
-                ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                phone_number TEXT,
-                email TEXT
-            )
-        `);
-
-        db.run(`
-            CREATE TABLE IF NOT EXISTS supplier_products (
-                SupplierID INTEGER NOT NULL,
-                ProductID INTEGER NOT NULL,
-                PRIMARY KEY (SupplierID, ProductID),
-                FOREIGN KEY (SupplierID) REFERENCES suppliers(ID) ON DELETE CASCADE,
-                FOREIGN KEY (ProductID) REFERENCES products(ID) ON DELETE CASCADE
-            )
-        `);
-
-        db.run(`
-            CREATE TABLE IF NOT EXISTS supplier_product_pricing (
-                ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                SupplierID INTEGER NOT NULL,
-                ProductID INTEGER NOT NULL,
-                supplier_price REAL NOT NULL DEFAULT 0,
-                supplier_sku TEXT,
-                min_order_quantity INTEGER DEFAULT 1,
-                lead_time_days INTEGER DEFAULT 7,
-                is_active BOOLEAN DEFAULT 1,
-                last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (SupplierID) REFERENCES suppliers(ID) ON DELETE CASCADE,
-                FOREIGN KEY (ProductID) REFERENCES products(ID) ON DELETE CASCADE,
-                FOREIGN KEY (SupplierID, ProductID) REFERENCES supplier_products(SupplierID, ProductID) ON DELETE CASCADE,
-                UNIQUE(SupplierID, ProductID)
-            )
-        `);
-
-        db.run(`
-            CREATE TABLE IF NOT EXISTS inventory (
-                OrderID INTEGER PRIMARY KEY AUTOINCREMENT,
-                ProductID INTEGER NOT NULL,
-                purchase_price REAL NOT NULL,
-                sale_price REAL NOT NULL,
-                quantity INTEGER NOT NULL,
-                expiration_date_per_batch TEXT,
-                FOREIGN KEY (ProductID) REFERENCES products(ID) ON DELETE CASCADE
-            )
-        `);
-
-        db.run(`
-            CREATE TABLE IF NOT EXISTS Transactions (
-                ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                TransactionType TEXT NOT NULL CHECK (TransactionType IN ('Purchase', 'Sale', 'Deposit', 'Withdrawal')),
-                payment_type TEXT NOT NULL CHECK (payment_type IN ('paid', 'owed')),
-                amount REAL NOT NULL,
-                SupplierID INTEGER,
-                CustomerID INTEGER,
-                TransactionDate TEXT NOT NULL,
-                notes TEXT,
-                FOREIGN KEY (SupplierID) REFERENCES suppliers(ID),
-                FOREIGN KEY (CustomerID) REFERENCES customers(ID)
-            )
-        `);
-
-        db.run(`
-            CREATE TABLE IF NOT EXISTS StockMovement (
-                ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                movement_type TEXT NOT NULL CHECK (movement_type IN ('In', 'Out')),
-                Quantity INTEGER NOT NULL,
-                MovementDate TEXT NOT NULL,
-                InventoryID INTEGER NOT NULL,
-                FOREIGN KEY (InventoryID) REFERENCES inventory(OrderID)
-            )
-        `);
-
-        db.run(`
-            INSERT OR IGNORE INTO customers (ID, name, email, phone_number)
-            VALUES (1, 'Public/Client', 'public@client.com', 'N/A')
-        `, (err) => {
-            if (err) {
-                console.warn('Error creating default customer (might already exist):', err.message);
-            } else {
-                console.log('Default customer (Public/Client) created or already exists');
-            }
-        });
-
-        db.run("ALTER TABLE Transactions ADD COLUMN notes TEXT;", (err) => {
-            if (err && !err.message.includes("duplicate column name")) {
-                console.warn("Could not add notes column (might already exist):", err.message);
-            }
+            db.run("ALTER TABLE Transactions ADD COLUMN notes TEXT;", (err) => {
+            });
+            
+            db.get("SELECT 1", (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
         });
     });
+}
 
-    db.close();
+export async function init_user_data(path: string) {
+    const db = new sqlite3.Database(path);
+    try {
+        await runUserSchema(db);
+    } catch (error) {
+        console.error("Failed to initialize user schema:", error);
+    } finally {
+        db.close();
+    }
 }
 
 export function connectToUserDatabase(folderHash: string): Promise<sqlite3.Database> {
@@ -292,24 +278,12 @@ export function connectToUserDatabase(folderHash: string): Promise<sqlite3.Datab
     const userDb = new sqlite3.Database(userDbPath, (err) => {
       if (err) reject(err);
       else {
-        userDb.run("PRAGMA foreign_keys = ON;");
-        
-        userDb.get("SELECT 1 FROM customers WHERE ID = 1", (err, row) => {
-          if (err) {
-            console.warn('Error checking default customer:', err.message);
-          } else if (!row) {
-            userDb.run(`
-              INSERT OR IGNORE INTO customers (ID, name, email, phone_number)
-              VALUES (1, 'Public/Client', 'public@client.com', 'N/A')
-            `, (insertErr) => {
-              if (insertErr) {
-                console.warn('Error creating default customer on connection:', insertErr.message);
-              }
+        runUserSchema(userDb)
+            .then(() => resolve(userDb))
+            .catch((schemaErr) => {
+                userDb.close(); 
+                reject(schemaErr);
             });
-          }
-        });
-        
-        resolve(userDb);
       }
     });
   });

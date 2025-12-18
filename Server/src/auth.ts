@@ -4,9 +4,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { getUserByEmail, createUser, getUserById } from './database_core.js';
 import express from 'express';
 
-const IsDebug = false;
+const IsDebug = true;
 const jwtSecret = 'your_jwt_secret_key_here_change_in_production';
-const saltRounds = 12;
+const saltRounds = 10;
 
 export function generateToken(userId: number, email: string): string {
   return jwt.sign({ id: userId, email }, jwtSecret, { expiresIn: '90d' });
@@ -217,7 +217,6 @@ export function getAuthenticatedUser(req: express.Request): {
   return req.user;
 }
 
-// NEW: Function to decode token for admin/statistics purposes
 export function decodeTokenForStats(token: string): { id: number; email: string } | null {
   try {
     return jwt.verify(token, jwtSecret) as { id: number; email: string };
